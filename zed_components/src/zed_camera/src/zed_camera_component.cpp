@@ -58,47 +58,47 @@ namespace stereolabs
 #define ROS_MEAS_UNITS sl::UNIT::METER
 
 
-bool topic_filter_mPubRgb = false;
-bool topic_filter_mPubRgbGray = false;
-bool topic_filter_mPubRawRgb = false;
-bool topic_filter_mPubRawRgbGray = false;
-bool topic_filter_mPubLeft = false;
-bool topic_filter_mPubLeftGray = false;
-bool topic_filter_mPubRawLeft = false;
-bool topic_filter_mPubRawLeftGray = false;
-bool topic_filter_mPubRight = false;
-bool topic_filter_mPubRightGray = false;
-bool topic_filter_mPubRawRight = false;
-bool topic_filter_mPubRawRightGray = false;
-bool topic_filter_mPubDepth = false;
-bool topic_filter_mPubDepthInfo = false;
-bool topic_filter_mPubStereo = false;
-bool topic_filter_mPubRawStereo = false;
-bool topic_filter_mPubConfMap = false;
-bool topic_filter_mPubDisparity = false;
-bool topic_filter_mPubCloud = false;
-bool topic_filter_mPubPose = false;
-bool topic_filter_mPubPoseStatus = false;
-bool topic_filter_mPubPoseCov = false;
-bool topic_filter_mPubOdom = false;
-bool topic_filter_mPubOdomStatus = false;
-bool topic_filter_mPubPosePath = false;
-bool topic_filter_mPubOdomPath = false;
-bool topic_filter_mPubGnssPose = false;
-bool topic_filter_mPubGnssPoseStatus = false;
-bool topic_filter_mPubGeoPose = false;
-bool topic_filter_mPubGeoPoseStatus = false;
-bool topic_filter_mPubFusedCloud = false;
-bool topic_filter_mPubMarker = false;
-bool topic_filter_mPubPlane = false;
-bool topic_filter_mPubImu = false;
-bool topic_filter_mPubImuRaw = false;
-bool topic_filter_mPubImuTemp = false;
-bool topic_filter_mPubImuMag = false;
-bool topic_filter_mPubPressure = false;
-bool topic_filter_mPubTempL = false;
-bool topic_filter_mPubTempR = false;
-bool topic_filter_mPubCamImuTransf = false;
+bool topic_disable_mPubRgb = true;
+bool topic_disable_mPubRgbGray = true;
+bool topic_disable_mPubRawRgb = true;
+bool topic_disable_mPubRawRgbGray = true;
+bool topic_disable_mPubLeft = false;
+bool topic_disable_mPubLeftGray = true;
+bool topic_disable_mPubRawLeft = true;
+bool topic_disable_mPubRawLeftGray = true;
+bool topic_disable_mPubRight = false;
+bool topic_disable_mPubRightGray = true;
+bool topic_disable_mPubRawRight = true;
+bool topic_disable_mPubRawRightGray = true;
+bool topic_disable_mPubDepth = true;
+bool topic_disable_mPubDepthInfo = true;
+bool topic_disable_mPubStereo = false;
+bool topic_disable_mPubRawStereo = true;
+bool topic_disable_mPubConfMap = true;
+bool topic_disable_mPubDisparity = true;
+bool topic_disable_mPubCloud = true;
+bool topic_disable_mPubPose = true;
+bool topic_disable_mPubPoseStatus = true;
+bool topic_disable_mPubPoseCov = true;
+bool topic_disable_mPubOdom = true;
+bool topic_disable_mPubOdomStatus = true;
+bool topic_disable_mPubPosePath = true;
+bool topic_disable_mPubOdomPath = true;
+bool topic_disable_mPubGnssPose = true;
+bool topic_disable_mPubGnssPoseStatus = true;
+bool topic_disable_mPubGeoPose = true;
+bool topic_disable_mPubGeoPoseStatus = true;
+bool topic_disable_mPubFusedCloud = true;
+bool topic_disable_mPubMarker = true;
+bool topic_disable_mPubPlane = true;
+bool topic_disable_mPubImu = true;
+bool topic_disable_mPubImuRaw = true;
+bool topic_disable_mPubImuTemp = true;
+bool topic_disable_mPubImuMag = true;
+bool topic_disable_mPubPressure = true;
+bool topic_disable_mPubTempL = true;
+bool topic_disable_mPubTempR = true;
+bool topic_disable_mPubCamImuTransf = true;
 
 
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
@@ -3114,78 +3114,78 @@ void ZedCamera::initPublishers()
   // <---- Topics names definition
 
   // ----> Camera publishers
-  if (!topic_filter_mPubRgb)
+  if (!topic_disable_mPubRgb)
   {
     mPubRgb =
       image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
   }
-  if (!topic_filter_mPubRgbGray)
+  if (!topic_disable_mPubRgbGray)
   {
     mPubRgbGray =
       image_transport::create_camera_publisher(this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
   }
-  if (!topic_filter_mPubRawRgb)
+  if (!topic_disable_mPubRawRgb)
   {
     mPubRawRgb =
       image_transport::create_camera_publisher(this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getTopic());
   }
-  if (!topic_filter_mPubRawRgbGray)
+  if (!topic_disable_mPubRawRgbGray)
   {
     mPubRawRgbGray = image_transport::create_camera_publisher(
       this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
   }
-  if (!topic_filter_mPubLeft)
+  if (!topic_disable_mPubLeft)
   {
     mPubLeft =
       image_transport::create_camera_publisher(this, left_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
   }
-  if (!topic_filter_mPubLeftGray)
+  if (!topic_disable_mPubLeftGray)
   {
     mPubLeftGray = image_transport::create_camera_publisher(
       this, left_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
   }
-  if (!topic_filter_mPubRawLeft)
+  if (!topic_disable_mPubRawLeft)
   {
     mPubRawLeft =
       image_transport::create_camera_publisher(this, left_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
   }
-  if (!topic_filter_mPubRawLeftGray)
+  if (!topic_disable_mPubRawLeftGray)
   {
     mPubRawLeftGray = image_transport::create_camera_publisher(
       this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
   }
-  if (!topic_filter_mPubRight)
+  if (!topic_disable_mPubRight)
   {
     mPubRight =
       image_transport::create_camera_publisher(this, right_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getTopic());
   }
-  if (!topic_filter_mPubRightGray)
+  if (!topic_disable_mPubRightGray)
   {
     mPubRightGray = image_transport::create_camera_publisher(
       this, right_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
   }
-  if (!topic_filter_mPubRawRight)
+  if (!topic_disable_mPubRawRight)
   {
     mPubRawRight = image_transport::create_camera_publisher(
       this, right_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
   }
-  if (!topic_filter_mPubRawRightGray)
+  if (!topic_disable_mPubRawRightGray)
   {
     mPubRawRightGray = image_transport::create_camera_publisher(
       this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
@@ -3194,14 +3194,14 @@ void ZedCamera::initPublishers()
   }
 
   if (!mDepthDisabled) {
-    if (!topic_filter_mPubDepth)
+    if (!topic_disable_mPubDepth)
     {
       mPubDepth =
         image_transport::create_camera_publisher(this, depth_topic, mDepthQos.get_rmw_qos_profile());
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepth.getTopic());
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepth.getInfoTopic());
     }
-    if (!topic_filter_mPubDepthInfo)
+    if (!topic_disable_mPubDepthInfo)
     {
       mPubDepthInfo =
         create_publisher<zed_interfaces::msg::DepthInfoStamped>(depth_info_topic, mDepthQos);
@@ -3209,13 +3209,13 @@ void ZedCamera::initPublishers()
     }
   }
 
-  if (!topic_filter_mPubStereo)
+  if (!topic_disable_mPubStereo)
   {
     mPubStereo =
       image_transport::create_publisher(this, stereo_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
   }
-  if (!topic_filter_mPubRawStereo)
+  if (!topic_disable_mPubRawStereo)
   {
     mPubRawStereo =
       image_transport::create_publisher(this, stereo_raw_topic, mVideoQos.get_rmw_qos_profile());
@@ -3225,17 +3225,17 @@ void ZedCamera::initPublishers()
 
   // ----> Depth publishers
   if (!mDepthDisabled) {
-    if (!topic_filter_mPubConfMap)
+    if (!topic_disable_mPubConfMap)
     {
       mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mDepthQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
     }
-    if (!topic_filter_mPubDisparity)
+    if (!topic_disable_mPubDisparity)
     {
       mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(disparity_topic, mDepthQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
     }
-    if (!topic_filter_mPubCloud)
+    if (!topic_disable_mPubCloud)
     {
       mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic, mDepthQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
@@ -3245,55 +3245,55 @@ void ZedCamera::initPublishers()
 
   // ----> Pos Tracking
   if (!mDepthDisabled) {
-    if (!topic_filter_mPubPose)
+    if (!topic_disable_mPubPose)
     {
       mPubPose = create_publisher<geometry_msgs::msg::PoseStamped>(mPoseTopic, mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPose->get_topic_name());
     }
-    if (!topic_filter_mPubPoseStatus)
+    if (!topic_disable_mPubPoseStatus)
     {
       mPubPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
         mPoseStatusTopic,
         mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseStatus->get_topic_name());
     }
-    if (!topic_filter_mPubPoseCov)
+    if (!topic_disable_mPubPoseCov)
     {
       mPubPoseCov =
         create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(mPoseCovTopic, mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
     }
-    if (!topic_filter_mPubOdom)
+    if (!topic_disable_mPubOdom)
     {
       mPubOdom = create_publisher<nav_msgs::msg::Odometry>(mOdomTopic, mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubOdom->get_topic_name());
     }
-    if (!topic_filter_mPubOdomStatus)
+    if (!topic_disable_mPubOdomStatus)
     {
       mPubOdomStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
         mOdomStatusTopic,
         mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubOdomStatus->get_topic_name());
     }
-    if (!topic_filter_mPubPosePath)
+    if (!topic_disable_mPubPosePath)
     {
       mPubPosePath = create_publisher<nav_msgs::msg::Path>(mMapPathTopic, mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPosePath->get_topic_name());
     }
-    if (!topic_filter_mPubOdomPath)
+    if (!topic_disable_mPubOdomPath)
     {
       mPubOdomPath = create_publisher<nav_msgs::msg::Path>(mOdomPathTopic, mPoseQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubOdomPath->get_topic_name());
     }
 
     if (mGnssFusionEnabled) {
-      if (!topic_filter_mPubGnssPose)
+      if (!topic_disable_mPubGnssPose)
       {
         mPubGnssPose = create_publisher<nav_msgs::msg::Odometry>(mGnssPoseTopic, mPoseQos);
         RCLCPP_INFO_STREAM(
           get_logger(), "Advertised on topic (GNSS): " << mPubGnssPose->get_topic_name());
       }
-      if (!topic_filter_mPubGnssPoseStatus)
+      if (!topic_disable_mPubGnssPoseStatus)
       {
         mPubGnssPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
           mGnssPoseStatusTopic, mPoseQos);
@@ -3301,13 +3301,13 @@ void ZedCamera::initPublishers()
           get_logger(),
           "Advertised on topic: " << mPubGnssPoseStatus->get_topic_name());
       }
-      if (!topic_filter_mPubGeoPose)
+      if (!topic_disable_mPubGeoPose)
       {
         mPubGeoPose = create_publisher<geographic_msgs::msg::GeoPoseStamped>(mGeoPoseTopic, mPoseQos);
         RCLCPP_INFO_STREAM(
           get_logger(), "Advertised on topic (GNSS): " << mPubGeoPose->get_topic_name());
       }
-      if (!topic_filter_mPubGeoPoseStatus)
+      if (!topic_disable_mPubGeoPoseStatus)
       {
         mPubGeoPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
           mGeoPoseStatusTopic,
@@ -3321,7 +3321,7 @@ void ZedCamera::initPublishers()
 
   // ----> Mapping
   if (!mDepthDisabled && mMappingEnabled) {
-    if (!topic_filter_mPubFusedCloud)
+    if (!topic_disable_mPubFusedCloud)
     {
       mPubFusedCloud =
         create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
@@ -3333,13 +3333,13 @@ void ZedCamera::initPublishers()
       std::string plane_topic = "plane";
       
       // Rviz markers publisher
-    if (!topic_filter_mPubMarker)
+    if (!topic_disable_mPubMarker)
     {
       mPubMarker = create_publisher<visualization_msgs::msg::Marker>(marker_topic, mMappingQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubMarker->get_topic_name());
       // Detected planes publisher
     }
-    if (!topic_filter_mPubPlane)
+    if (!topic_disable_mPubPlane)
     {
       mPubPlane = create_publisher<zed_interfaces::msg::PlaneStamped>(plane_topic, mMappingQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPlane->get_topic_name());
@@ -3349,19 +3349,19 @@ void ZedCamera::initPublishers()
 
   // ----> Sensors
   if (!sl_tools::isZED(mCamRealModel)) {
-    if (!topic_filter_mPubImu)
+    if (!topic_disable_mPubImu)
     {
       mPubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, mSensQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
     }
-    if (!topic_filter_mPubImuRaw)
+    if (!topic_disable_mPubImuRaw)
     {
       mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, mSensQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuRaw->get_topic_name());
     }
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel) || sl_tools::isZEDX(mCamRealModel)) {
-      if (!topic_filter_mPubImuTemp)
+      if (!topic_disable_mPubImuTemp)
       {
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>(imu_temp_topic, mSensQos);
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
@@ -3369,22 +3369,22 @@ void ZedCamera::initPublishers()
     }
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      if (!topic_filter_mPubImuMag)
+      if (!topic_disable_mPubImuMag)
       {
         mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>(imu_mag_topic, mSensQos);
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
       }
-      if (!topic_filter_mPubPressure)
+      if (!topic_disable_mPubPressure)
       {
         mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>(pressure_topic, mSensQos);
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPressure->get_topic_name());
       }
-      if (!topic_filter_mPubTempL)
+      if (!topic_disable_mPubTempL)
       {
         mPubTempL = create_publisher<sensor_msgs::msg::Temperature>(temp_topic_left, mSensQos);
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubTempL->get_topic_name());
       }
-      if (!topic_filter_mPubTempR)
+      if (!topic_disable_mPubTempR)
       {
         mPubTempR = create_publisher<sensor_msgs::msg::Temperature>(temp_topic_right, mSensQos);
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubTempR->get_topic_name());
@@ -3393,13 +3393,12 @@ void ZedCamera::initPublishers()
 
     // ----> Camera/imu transform message
     std::string cam_imu_tr_topic = mTopicRoot + "left_cam_imu_transform";
-    if (!topic_filter_mPubCamImuTransf)
+    if (!topic_disable_mPubCamImuTransf)
     {
       mPubCamImuTransf =
         create_publisher<geometry_msgs::msg::TransformStamped>(cam_imu_tr_topic, mSensQos);
-    }
-
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCamImuTransf->get_topic_name());
+    }
 
     sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
     sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
@@ -4363,7 +4362,7 @@ bool ZedCamera::start3dMapping()
   sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
 
   if (err == sl::ERROR_CODE::SUCCESS) {
-    if (mPubFusedCloud == nullptr) {
+    if (mPubFusedCloud == nullptr && !topic_disable_mPubFusedCloud) {
       mPubFusedCloud =
         create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
       RCLCPP_INFO_STREAM(
@@ -4986,7 +4985,7 @@ void ZedCamera::publishImuFrameAndTopic()
   cameraImuTransfMgs->transform.translation.y = sl_tr.y;
   cameraImuTransfMgs->transform.translation.z = sl_tr.z;
 
-  mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));
+  if (!topic_disable_mPubCamImuTransf) mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));
 
   // Publish IMU TF as static TF
   if (!mPublishImuTF) {
@@ -5269,12 +5268,15 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Retrieve the point cloud if someone has subscribed to
     if (!mDepthDisabled) {
       size_t cloudSubnumber = 0;
-      try {
-        cloudSubnumber = count_subscribers(mPubCloud->get_topic_name());
-      } catch (...) {
-        rcutils_reset_error();
-        DEBUG_STREAM_PC("threadFunc_zedGrab: Exception while counting point cloud subscribers");
-        continue;
+      if (!topic_disable_mPubCloud)
+      {
+        try {
+          cloudSubnumber = count_subscribers(mPubCloud->get_topic_name());
+        } catch (...) {
+          rcutils_reset_error();
+          DEBUG_STREAM_PC("threadFunc_zedGrab: Exception while counting point cloud subscribers");
+          continue;
+        }
       }
 
       if (cloudSubnumber > 0) {
@@ -5333,14 +5335,14 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   size_t pressSubNumber = 0;
 
   try {
-    imu_SubNumber = count_subscribers(mPubImu->get_topic_name());
-    imu_RawSubNumber = count_subscribers(mPubImuRaw->get_topic_name());
+    if (!topic_disable_mPubImu) imu_SubNumber = count_subscribers(mPubImu->get_topic_name());
+    if (!topic_disable_mPubImuRaw) imu_RawSubNumber = count_subscribers(mPubImuRaw->get_topic_name());
     imu_MagSubNumber = 0;
     pressSubNumber = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
-      pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
+      if (!topic_disable_mPubImuMag) imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
+      if (!topic_disable_mPubPressure) pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
     }
   } catch (...) {
     rcutils_reset_error();
@@ -5510,8 +5512,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       }
       // <---- Covariances copy
 
-      DEBUG_STREAM_SENS("Publishing IMU message");
-      mPubImu->publish(std::move(imuMsg));
+      if (!topic_disable_mPubImu)
+      {
+        DEBUG_STREAM_SENS("Publishing IMU message");
+        mPubImu->publish(std::move(imuMsg));
+      }
     } else {
       mImuPublishing = false;
     }
@@ -5562,8 +5567,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       }
       // <---- Covariances copy
 
-      DEBUG_STREAM_SENS("Publishing IMU RAW message");
-      mPubImuRaw->publish(std::move(imuRawMsg));
+      if (!topic_disable_mPubImuRaw)
+      {
+        DEBUG_STREAM_SENS("Publishing IMU RAW message");
+        mPubImuRaw->publish(std::move(imuRawMsg));
+      }
     }
   }
 
@@ -5579,8 +5587,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       // https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg
       pressMsg->variance = 1.0585e-2;
 
-      DEBUG_STREAM_SENS("Publishing PRESS message");
-      mPubPressure->publish(std::move(pressMsg));
+      if (!topic_disable_mPubPressure)
+      {
+        DEBUG_STREAM_SENS("Publishing PRESS message");
+        mPubPressure->publish(std::move(pressMsg));
+      }
     } else {
       mBaroPublishing = false;
     }
@@ -5610,8 +5621,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       magMsg->magnetic_field_covariance[7] = 0.0f;
       magMsg->magnetic_field_covariance[8] = 0.047e-6;
 
-      DEBUG_STREAM_SENS("Publishing MAG message");
-      mPubImuMag->publish(std::move(magMsg));
+      if (!topic_disable_mPubImuMag)
+      {
+        DEBUG_STREAM_SENS("Publishing MAG message");
+        mPubImuMag->publish(std::move(magMsg));
+      }
     } else {
       mMagPublishing = false;
     }
@@ -5983,10 +5997,10 @@ bool ZedCamera::areVideoDepthSubscribed()
     mStereoRawSubnumber = mPubRawStereo.getNumSubscribers();
 
     if (!mDepthDisabled) {
-      mDepthSubnumber = mPubDepth.getNumSubscribers();
-      mDepthInfoSubnumber = count_subscribers(mPubDepthInfo->get_topic_name());
-      mConfMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
-      mDisparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
+      if (!topic_disable_mPubDepth) mDepthSubnumber = mPubDepth.getNumSubscribers();
+      if (!topic_disable_mPubDepthInfo) mDepthInfoSubnumber = count_subscribers(mPubDepthInfo->get_topic_name());
+      if (!topic_disable_mPubConfMap) mConfMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
+      if (!topic_disable_mPubDisparity) mDisparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
     }
   } catch (...) {
     rcutils_reset_error();
@@ -6269,8 +6283,11 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     depthInfoMsg->min_depth = mMinDepth;
     depthInfoMsg->max_depth = mMaxDepth;
 
-    DEBUG_STREAM_VD("Publishing DEPTH INFO message");
-    mPubDepthInfo->publish(std::move(depthInfoMsg));
+    if (!topic_disable_mPubDepthInfo)
+    {
+      DEBUG_STREAM_VD("Publishing DEPTH INFO message");
+      mPubDepthInfo->publish(std::move(depthInfoMsg));
+    }
   }
   // <---- Publish the depth info if someone has subscribed to
 
@@ -6593,21 +6610,24 @@ void ZedCamera::processPose()
 
 void ZedCamera::publishPoseStatus()
 {
-  size_t statusSub = 0;
+  if (!topic_disable_mPubPoseStatus)
+  {
+    size_t statusSub = 0;
 
-  try {
-    statusSub = count_subscribers(mPoseStatusTopic); // mPubPoseStatus subscribers
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
-    return;
-  }
+    try {
+      statusSub = count_subscribers(mPoseStatusTopic); // mPubPoseStatus subscribers
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+      return;
+    }
 
-  if (statusSub > 0) {
-    poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
-    msg->status = static_cast<uint8_t>(mPosTrackingStatusWorld);
+    if (statusSub > 0) {
+      poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+      msg->status = static_cast<uint8_t>(mPosTrackingStatusWorld);
 
-    mPubPoseStatus->publish(std::move(msg));
+      mPubPoseStatus->publish(std::move(msg));
+    }
   }
 }
 
@@ -6627,7 +6647,7 @@ void ZedCamera::publishOdomStatus()
     poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
     msg->status = static_cast<uint8_t>(mPosTrackingStatusCamera);
 
-    mPubOdomStatus->publish(std::move(msg));
+    if (!topic_disable_mPubOdomStatus) mPubOdomStatus->publish(std::move(msg));
   }
 }
 
@@ -6659,39 +6679,42 @@ void ZedCamera::publishGnssPoseStatus()
       msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::SEARCHING);
     }
 
-    mPubGnssPoseStatus->publish(std::move(msg));
+    if (!topic_disable_mPubGnssPoseStatus) mPubGnssPoseStatus->publish(std::move(msg));
   }
 }
 
 void ZedCamera::publishGeoPoseStatus()
 {
-  size_t statusSub = 0;
+  if (!topic_disable_mPubGeoPoseStatus)
+  {
+    size_t statusSub = 0;
 
-  try {
-    statusSub = count_subscribers(mGeoPoseStatusTopic); // mPubGnssPoseStatus subscribers
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
-    return;
-  }
-
-  if (statusSub > 0) {
-    poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
-
-#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
-    if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
-      mGeoPoseStatus == sl::POSITIONAL_TRACKING_STATE::OK)
-#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
-    if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
-      mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
-#endif
-    {
-      msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
-    } else {
-      msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::SEARCHING);
+    try {
+      statusSub = count_subscribers(mGeoPoseStatusTopic); // mPubGnssPoseStatus subscribers
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+      return;
     }
 
-    mPubGeoPoseStatus->publish(std::move(msg));
+    if (statusSub > 0) {
+      poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+
+  #if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
+      if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+        mGeoPoseStatus == sl::POSITIONAL_TRACKING_STATE::OK)
+  #elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+      if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+        mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+  #endif
+      {
+        msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
+      } else {
+        msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::SEARCHING);
+      }
+
+      mPubGeoPoseStatus->publish(std::move(msg));
+    }
   }
 }
 
@@ -6736,8 +6759,11 @@ void ZedCamera::publishPose()
     poseNoCov->pose = pose;
 
     // Publish pose stamped message
-    DEBUG_STREAM_PT("Publishing POSE NO COV message");
-    mPubPose->publish(std::move(poseNoCov));
+    if (!topic_disable_mPubPose)
+    {
+      DEBUG_STREAM_PT("Publishing POSE NO COV message");
+      mPubPose->publish(std::move(poseNoCov));
+    }
   }
 
   if (mPublishPoseCov) {
@@ -6763,8 +6789,11 @@ void ZedCamera::publishPose()
       }
 
       // Publish pose with covariance stamped message
-      DEBUG_STREAM_PT("Publishing POSE COV message");
-      mPubPoseCov->publish(std::move(poseCov));
+      if (!topic_disable_mPubPoseCov)
+      {
+        DEBUG_STREAM_PT("Publishing POSE COV message");
+        mPubPoseCov->publish(std::move(poseCov));
+      }
     }
   }
 }
@@ -6962,7 +6991,7 @@ void ZedCamera::publishGnssPose()
 
     // Publish gnss message
     //DEBUG_GNSS("Publishing GNSS pose message");
-    mPubGnssPose->publish(std::move(msg));
+    if (!topic_disable_mPubGeoPose) mPubGnssPose->publish(std::move(msg));
   }
 
   if (geoPoseSub > 0) {
@@ -7284,11 +7313,11 @@ bool ZedCamera::isDepthRequired()
   size_t depthInfoSub = 0;
 
   try {
-    depthSub = mPubDepth.getNumSubscribers();
-    confMapSub = count_subscribers(mPubConfMap->get_topic_name());
-    dispSub = count_subscribers(mPubDisparity->get_topic_name());
-    pcSub = count_subscribers(mPubCloud->get_topic_name());
-    depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
+    if (!topic_disable_mPubDepth) depthSub = mPubDepth.getNumSubscribers();
+    if (!topic_disable_mPubConfMap) confMapSub = count_subscribers(mPubConfMap->get_topic_name());
+    if (!topic_disable_mPubDisparity) dispSub = count_subscribers(mPubDisparity->get_topic_name());
+    if (!topic_disable_mPubCloud) pcSub = count_subscribers(mPubCloud->get_topic_name());
+    if (!topic_disable_mPubDepthInfo) depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
 
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
   } catch (...) {
@@ -7637,11 +7666,16 @@ bool ZedCamera::isPosTrackingRequired()
 
   size_t topics_sub = 0;
   try {
-    topics_sub = count_subscribers(mPubPose->get_topic_name()) +
+    if (!topic_disable_mPubPose) topics_sub += count_subscribers(mPubPose->get_topic_name());
+    if (!topic_disable_mPubPoseCov) topics_sub += count_subscribers(mPubPoseCov->get_topic_name());
+    if (!topic_disable_mPubPosePath) topics_sub += count_subscribers(mPubPosePath->get_topic_name());
+    if (!topic_disable_mPubOdom) topics_sub += count_subscribers(mPubOdom->get_topic_name());
+    if (!topic_disable_mPubOdomPath) topics_sub += count_subscribers(mPubOdomPath->get_topic_name());
+    /*topics_sub += count_subscribers(mPubPose->get_topic_name()) +
       count_subscribers(mPubPoseCov->get_topic_name()) +
       count_subscribers(mPubPosePath->get_topic_name()) +
       count_subscribers(mPubOdom->get_topic_name()) +
-      count_subscribers(mPubOdomPath->get_topic_name());
+      count_subscribers(mPubOdomPath->get_topic_name());      */
   } catch (...) {
     rcutils_reset_error();
     RCLCPP_WARN(get_logger(), "isPosTrackingRequired: Exception while counting subscribers");
@@ -7661,7 +7695,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 {
   mDepthCamInfoMsg->header.stamp = t;
 
-  if (!mOpenniDepthMode) {
+  if (!mOpenniDepthMode && !topic_disable_mPubDepth) {
     auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
     DEBUG_STREAM_VD("Publishing DEPTH message");
     mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
@@ -7695,8 +7729,11 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
     *(data++) = static_cast<uint16_t>(std::round(*(depthDataPtr++) * 1000));  // in mm, rounded
   }
 
-  DEBUG_STREAM_VD("Publishing OPENNI DEPTH message");
-  mPubDepth.publish(std::move(openniDepthMsg), mDepthCamInfoMsg);
+  if (!topic_disable_mPubDepth)
+  {
+    DEBUG_STREAM_VD("Publishing OPENNI DEPTH message");
+    mPubDepth.publish(std::move(openniDepthMsg), mDepthCamInfoMsg);
+  }
 }
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
@@ -7716,8 +7753,11 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   disparityMsg->max_disparity =
     disparityMsg->f * disparityMsg->t / mZed.getInitParameters().depth_maximum_distance;
 
+  if (!topic_disable_mPubDisparity)
+  {
   DEBUG_STREAM_VD("Publishing DISPARITY message");
   mPubDisparity->publish(std::move(disparityMsg));
+  }
 }
 
 void ZedCamera::publishPointCloud()
@@ -7777,8 +7817,11 @@ void ZedCamera::publishPointCloud()
   memcpy(ptCloudPtr, reinterpret_cast<float *>(cpu_cloud), ptsCount * 4 * sizeof(float));
 
   // Pointcloud publishing
-  DEBUG_STREAM_PC("Publishing POINT CLOUD message");
-  mPubCloud->publish(std::move(pcMsg));
+  if (!topic_disable_mPubCloud)
+  {
+    DEBUG_STREAM_PC("Publishing POINT CLOUD message");
+    mPubCloud->publish(std::move(pcMsg));
+  }
 
   // Publish freq calculation
   static sl_tools::StopWatch pcfreqTimer(get_clock());
@@ -7833,10 +7876,10 @@ void ZedCamera::callback_pubTemp()
     tempImuSubNumber = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
-      tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
+      if (!topic_disable_mPubTempL) tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
+      if (!topic_disable_mPubTempR) tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
     }
-    tempImuSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
+    if (!topic_disable_mPubImuTemp) tempImuSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS("callback_pubTemp: Exception while counting subscribers");
@@ -7855,7 +7898,14 @@ void ZedCamera::callback_pubTemp()
     leftTempMsg->temperature = static_cast<double>(mTempLeft);
     leftTempMsg->variance = 0.0;
 
-    mPubTempL->publish(std::move(leftTempMsg));
+    if (!topic_disable_mPubTempL) mPubTempL->publish(std::move(leftTempMsg));
+/*  //I think that this should be here instead:
+    if (!topic_disable_mPubTempL)
+    {
+      DEBUG_STREAM_SENS("Publishing LEFT TEMP message");
+      mPubTempL->publish(std::move(leftTempMsg));
+    }
+*/
   }
 
   if (tempRightSubNumber > 0) {
@@ -7867,8 +7917,11 @@ void ZedCamera::callback_pubTemp()
     rightTempMsg->temperature = static_cast<double>(mTempRight);
     rightTempMsg->variance = 0.0;
 
-    DEBUG_STREAM_SENS("Publishing RIGHT TEMP message");
-    mPubTempR->publish(std::move(rightTempMsg));
+    if (!topic_disable_mPubTempR)
+    {
+      DEBUG_STREAM_SENS("Publishing RIGHT TEMP message");
+      mPubTempR->publish(std::move(rightTempMsg));
+    }
   }
 
   if (tempImuSubNumber > 0) {
@@ -7880,8 +7933,11 @@ void ZedCamera::callback_pubTemp()
     imuTempMsg->temperature = static_cast<double>(mTempImu);
     imuTempMsg->variance = 0.0;
 
-    DEBUG_SENS("Publishing IMU TEMP message");
-    mPubImuTemp->publish(std::move(imuTempMsg));
+    if (!topic_disable_mPubImuTemp)
+    {
+      DEBUG_SENS("Publishing IMU TEMP message");
+      mPubImuTemp->publish(std::move(imuTempMsg));
+    }
   }
 }
 
@@ -7895,7 +7951,7 @@ void ZedCamera::callback_pubFusedPc()
 
   uint32_t fusedCloudSubnumber = 0;
   try {
-    fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+    if (!topic_disable_mPubFusedCloud) fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP("pubFusedPc: Exception while counting subscribers");
@@ -7982,8 +8038,11 @@ void ZedCamera::callback_pubFusedPc()
   prev_ts = ros_ts;
 
   // Pointcloud publishing
-  DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
-  mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
+  if (!topic_disable_mPubFusedCloud)
+  {
+    DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
+    mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
+  }
 }
 
 void ZedCamera::callback_pubPaths()
@@ -8064,8 +8123,11 @@ void ZedCamera::callback_pubPaths()
     mapPathMsg->header.stamp = mFrameTimestamp;
     mapPathMsg->poses = mMapPath;
 
-    DEBUG_STREAM_PT("Publishing MAP PATH message");
-    mPubPosePath->publish(std::move(mapPathMsg));
+    if (!topic_disable_mPubPosePath)
+    {
+      DEBUG_STREAM_PT("Publishing MAP PATH message");
+      mPubPosePath->publish(std::move(mapPathMsg));
+    }
   }
 
   if (odomPathSub > 0) {
@@ -8074,8 +8136,11 @@ void ZedCamera::callback_pubPaths()
     odomPathMsg->header.stamp = mFrameTimestamp;
     odomPathMsg->poses = mOdomPath;
 
-    DEBUG_STREAM_PT("Publishing ODOM PATH message");
-    mPubOdomPath->publish(std::move(odomPathMsg));
+    if (!topic_disable_mPubOdomPath)
+    {
+      DEBUG_STREAM_PT("Publishing ODOM PATH message");
+      mPubOdomPath->publish(std::move(odomPathMsg));
+    }
   }
 }
 
@@ -8854,8 +8919,8 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
   size_t markerSubNumber = 0;
   size_t planeSubNumber = 0;
   try {
-    markerSubNumber = count_subscribers(mPubMarker->get_topic_name());
-    planeSubNumber = count_subscribers(mPubPlane->get_topic_name());
+    if (!topic_disable_mPubMarker) markerSubNumber = count_subscribers(mPubMarker->get_topic_name());
+    if (!topic_disable_mPubPlane) planeSubNumber = count_subscribers(mPubPlane->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP("callback_clickedPoint: Exception while counting point plane subscribers");
@@ -9137,8 +9202,11 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
       planeMsg->mesh.vertices[i].z = sl_mesh.vertices[i][2];
     }
 
-    DEBUG_STREAM_MAP("Publishing PLANE message");
-    mPubPlane->publish(std::move(planeMsg));
+    if (!topic_disable_mPubPlane)
+    {
+      DEBUG_STREAM_MAP("Publishing PLANE message");
+      mPubPlane->publish(std::move(planeMsg));
+    }
     // <---- Publish the plane as custom message
   }
 }
