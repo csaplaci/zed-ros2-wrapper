@@ -57,50 +57,6 @@ namespace stereolabs
 #define ROS_COORDINATE_SYSTEM sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD
 #define ROS_MEAS_UNITS sl::UNIT::METER
 
-
-bool topic_disable_mPubRgb = true;
-bool topic_disable_mPubRgbGray = true;
-bool topic_disable_mPubRawRgb = true;
-bool topic_disable_mPubRawRgbGray = true;
-bool topic_disable_mPubLeft = false;
-bool topic_disable_mPubLeftGray = true;
-bool topic_disable_mPubRawLeft = true;
-bool topic_disable_mPubRawLeftGray = true;
-bool topic_disable_mPubRight = false;
-bool topic_disable_mPubRightGray = true;
-bool topic_disable_mPubRawRight = true;
-bool topic_disable_mPubRawRightGray = true;
-bool topic_disable_mPubDepth = true;
-bool topic_disable_mPubDepthInfo = true;
-bool topic_disable_mPubStereo = false;
-bool topic_disable_mPubRawStereo = true;
-bool topic_disable_mPubConfMap = true;
-bool topic_disable_mPubDisparity = true;
-bool topic_disable_mPubCloud = true;
-bool topic_disable_mPubPose = true;
-bool topic_disable_mPubPoseStatus = true;
-bool topic_disable_mPubPoseCov = true;
-bool topic_disable_mPubOdom = true;
-bool topic_disable_mPubOdomStatus = true;
-bool topic_disable_mPubPosePath = true;
-bool topic_disable_mPubOdomPath = true;
-bool topic_disable_mPubGnssPose = true;
-bool topic_disable_mPubGnssPoseStatus = true;
-bool topic_disable_mPubGeoPose = true;
-bool topic_disable_mPubGeoPoseStatus = true;
-bool topic_disable_mPubFusedCloud = true;
-bool topic_disable_mPubMarker = true;
-bool topic_disable_mPubPlane = true;
-bool topic_disable_mPubImu = true;
-bool topic_disable_mPubImuRaw = true;
-bool topic_disable_mPubImuTemp = true;
-bool topic_disable_mPubImuMag = true;
-bool topic_disable_mPubPressure = true;
-bool topic_disable_mPubTempL = true;
-bool topic_disable_mPubTempR = true;
-bool topic_disable_mPubCamImuTransf = true;
-
-
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 : Node("zed_node", options),
   mVideoQos(1),
@@ -390,6 +346,9 @@ void ZedCamera::getParam(
 
 void ZedCamera::initParameters()
 {
+  //TOPIC FILTER parameters
+  getTopicFilterParams();
+
   // DEBUG parameters
   getDebugParams();
 
@@ -497,6 +456,51 @@ std::string ZedCamera::parseRoiPoly(
   ss += "]";
 
   return ss;
+}
+
+void ZedCamera::getTopicFilterParams()
+{
+  getParam("topic_filter.disable_mPubRgb",            topic_disable_mPubRgb,            topic_disable_mPubRgb);
+  getParam("topic_filter.disable_mPubRgbGray",        topic_disable_mPubRgbGray,        topic_disable_mPubRgbGray);
+  getParam("topic_filter.disable_mPubRawRgb",         topic_disable_mPubRawRgb,         topic_disable_mPubRawRgb);
+  getParam("topic_filter.disable_mPubRawRgbGray",     topic_disable_mPubRawRgbGray,     topic_disable_mPubRawRgbGray);
+  getParam("topic_filter.disable_mPubLeft",           topic_disable_mPubLeft,           topic_disable_mPubLeft);
+  getParam("topic_filter.disable_mPubLeftGray",       topic_disable_mPubLeftGray,       topic_disable_mPubLeftGray);
+  getParam("topic_filter.disable_mPubRawLeft",        topic_disable_mPubRawLeft,        topic_disable_mPubRawLeft);
+  getParam("topic_filter.disable_mPubRawLeftGray",    topic_disable_mPubRawLeftGray,    topic_disable_mPubRawLeftGray);
+  getParam("topic_filter.disable_mPubRight",          topic_disable_mPubRight,          topic_disable_mPubRight);
+  getParam("topic_filter.disable_mPubRightGray",      topic_disable_mPubRightGray,      topic_disable_mPubRightGray);
+  getParam("topic_filter.disable_mPubRawRight",       topic_disable_mPubRawRight,       topic_disable_mPubRawRight);
+  getParam("topic_filter.disable_mPubRawRightGray",   topic_disable_mPubRawRightGray,   topic_disable_mPubRawRightGray);
+  getParam("topic_filter.disable_mPubDepth",          topic_disable_mPubDepth,          topic_disable_mPubDepth);
+  getParam("topic_filter.disable_mPubDepthInfo",      topic_disable_mPubDepthInfo,      topic_disable_mPubDepthInfo);
+  getParam("topic_filter.disable_mPubStereo",         topic_disable_mPubStereo,         topic_disable_mPubStereo);
+  getParam("topic_filter.disable_mPubRawStereo",      topic_disable_mPubRawStereo,      topic_disable_mPubRawStereo);
+  getParam("topic_filter.disable_mPubConfMap",        topic_disable_mPubConfMap,        topic_disable_mPubConfMap);
+  getParam("topic_filter.disable_mPubDisparity",      topic_disable_mPubDisparity,      topic_disable_mPubDisparity);
+  getParam("topic_filter.disable_mPubCloud",          topic_disable_mPubCloud,          topic_disable_mPubCloud);
+  getParam("topic_filter.disable_mPubPose",           topic_disable_mPubPose,           topic_disable_mPubPose);
+  getParam("topic_filter.disable_mPubPoseStatus",     topic_disable_mPubPoseStatus,     topic_disable_mPubPoseStatus);
+  getParam("topic_filter.disable_mPubPoseCov",        topic_disable_mPubPoseCov,        topic_disable_mPubPoseCov);
+  getParam("topic_filter.disable_mPubOdom",           topic_disable_mPubOdom,           topic_disable_mPubOdom);
+  getParam("topic_filter.disable_mPubOdomStatus",     topic_disable_mPubOdomStatus,     topic_disable_mPubOdomStatus);
+  getParam("topic_filter.disable_mPubPosePath",       topic_disable_mPubPosePath,       topic_disable_mPubPosePath);
+  getParam("topic_filter.disable_mPubOdomPath",       topic_disable_mPubOdomPath,       topic_disable_mPubOdomPath);
+  getParam("topic_filter.disable_mPubGnssPose",       topic_disable_mPubGnssPose,       topic_disable_mPubGnssPose);
+  getParam("topic_filter.disable_mPubGnssPoseStatus", topic_disable_mPubGnssPoseStatus, topic_disable_mPubGnssPoseStatus);
+  getParam("topic_filter.disable_mPubGeoPose",        topic_disable_mPubGeoPose,        topic_disable_mPubGeoPose);
+  getParam("topic_filter.disable_mPubGeoPoseStatus",  topic_disable_mPubGeoPoseStatus,  topic_disable_mPubGeoPoseStatus);
+  getParam("topic_filter.disable_mPubFusedCloud",     topic_disable_mPubFusedCloud,     topic_disable_mPubFusedCloud);
+  getParam("topic_filter.disable_mPubMarker",         topic_disable_mPubMarker,         topic_disable_mPubMarker);
+  getParam("topic_filter.disable_mPubPlane",          topic_disable_mPubPlane,          topic_disable_mPubPlane);
+  getParam("topic_filter.disable_mPubImu",            topic_disable_mPubImu,            topic_disable_mPubImu);
+  getParam("topic_filter.disable_mPubImuRaw",         topic_disable_mPubImuRaw,         topic_disable_mPubImuRaw);
+  getParam("topic_filter.disable_mPubImuTemp",        topic_disable_mPubImuTemp,        topic_disable_mPubImuTemp);
+  getParam("topic_filter.disable_mPubImuMag",         topic_disable_mPubImuMag,         topic_disable_mPubImuMag);
+  getParam("topic_filter.disable_mPubPressure",       topic_disable_mPubPressure,       topic_disable_mPubPressure);
+  getParam("topic_filter.disable_mPubTempL",          topic_disable_mPubTempL,          topic_disable_mPubTempL);
+  getParam("topic_filter.disable_mPubTempR",          topic_disable_mPubTempR,          topic_disable_mPubTempR);
+  getParam("topic_filter.disable_mPubCamImuTransf",   topic_disable_mPubCamImuTransf,   topic_disable_mPubCamImuTransf);
 }
 
 void ZedCamera::getDebugParams()

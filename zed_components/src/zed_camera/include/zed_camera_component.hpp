@@ -40,6 +40,8 @@ protected:
   void initParameters();
   void initServices();
 
+  void getTopicFilterParams();
+
   void getDebugParams();
   void getSimParams();
   void getGeneralParams();
@@ -240,6 +242,50 @@ private:
   std::string mMapPathTopic;
   std::string mClickedPtTopic;  // Clicked point
   // <---- Topics
+
+  // ----> Topic filter variables
+  bool topic_disable_mPubRgb = true;
+  bool topic_disable_mPubRgbGray = true;
+  bool topic_disable_mPubRawRgb = true;
+  bool topic_disable_mPubRawRgbGray = true;
+  bool topic_disable_mPubLeft = false;
+  bool topic_disable_mPubLeftGray = true;
+  bool topic_disable_mPubRawLeft = true;
+  bool topic_disable_mPubRawLeftGray = true;
+  bool topic_disable_mPubRight = false;
+  bool topic_disable_mPubRightGray = true;
+  bool topic_disable_mPubRawRight = true;
+  bool topic_disable_mPubRawRightGray = true;
+  bool topic_disable_mPubDepth = true;
+  bool topic_disable_mPubDepthInfo = true;
+  bool topic_disable_mPubStereo = false;
+  bool topic_disable_mPubRawStereo = true;
+  bool topic_disable_mPubConfMap = true;
+  bool topic_disable_mPubDisparity = true;
+  bool topic_disable_mPubCloud = true;
+  bool topic_disable_mPubPose = true;
+  bool topic_disable_mPubPoseStatus = true;
+  bool topic_disable_mPubPoseCov = true;
+  bool topic_disable_mPubOdom = true;
+  bool topic_disable_mPubOdomStatus = true;
+  bool topic_disable_mPubPosePath = true;
+  bool topic_disable_mPubOdomPath = true;
+  bool topic_disable_mPubGnssPose = true;
+  bool topic_disable_mPubGnssPoseStatus = true;
+  bool topic_disable_mPubGeoPose = true;
+  bool topic_disable_mPubGeoPoseStatus = true;
+  bool topic_disable_mPubFusedCloud = true;
+  bool topic_disable_mPubMarker = true;
+  bool topic_disable_mPubPlane = true;
+  bool topic_disable_mPubImu = true;
+  bool topic_disable_mPubImuRaw = true;
+  bool topic_disable_mPubImuTemp = true;
+  bool topic_disable_mPubImuMag = true;
+  bool topic_disable_mPubPressure = true;
+  bool topic_disable_mPubTempL = true;
+  bool topic_disable_mPubTempR = true;
+  bool topic_disable_mPubCamImuTransf = true;
+  // <---- Topic filter variables
 
   // ----> Parameter variables
   bool mDebugCommon = false;

@@ -170,3 +170,46 @@
             debug_terrain_mapping : false
             debug_object_detection : false
             debug_body_tracking : false
+            
+        topic_filter:
+            disable_mPubRgb : true
+            disable_mPubRgbGray : true
+            disable_mPubRawRgb : true
+            disable_mPubRawRgbGray : true
+            disable_mPubLeft : false
+            disable_mPubLeftGray : true
+            disable_mPubRawLeft : true
+            disable_mPubRawLeftGray : true
+            disable_mPubRight : false
+            disable_mPubRightGray : true
+            disable_mPubRawRight : true
+            disable_mPubRawRightGray : true
+            disable_mPubDepth : true
+            disable_mPubDepthInfo : true
+            disable_mPubStereo : false
+            disable_mPubRawStereo : true
+            disable_mPubConfMap : true
+            disable_mPubDisparity : true
+            disable_mPubCloud : true
+            disable_mPubPose : true
+            disable_mPubPoseStatus : true
+            disable_mPubPoseCov : true
+            disable_mPubOdom : true
+            disable_mPubOdomStatus : true
+            disable_mPubPosePath : true
+            disable_mPubOdomPath : true
+            disable_mPubGnssPose : true
+            disable_mPubGnssPoseStatus : true
+            disable_mPubGeoPose : true
+            disable_mPubGeoPoseStatus : true
+            disable_mPubFusedCloud : true
+            disable_mPubMarker : true
+            disable_mPubPlane : true
+            disable_mPubImu : true
+            disable_mPubImuRaw : true
+            disable_mPubImuTemp : true
+            disable_mPubImuMag : true
+            disable_mPubPressure : true
+            disable_mPubTempL : true
+            disable_mPubTempR : true
+            disable_mPubCamImuTransf : true
