@@ -346,7 +346,7 @@ void ZedCamera::getParam(
 
 void ZedCamera::initParameters()
 {
-  //TOPIC FILTER parameters
+  // TOPIC FILTER parameters
   getTopicFilterParams();
 
   // DEBUG parameters
@@ -7317,13 +7317,14 @@ bool ZedCamera::isDepthRequired()
   size_t depthInfoSub = 0;
 
   try {
-    if (!topic_disable_mPubDepth) depthSub = mPubDepth.getNumSubscribers();
-    if (!topic_disable_mPubConfMap) confMapSub = count_subscribers(mPubConfMap->get_topic_name());
-    if (!topic_disable_mPubDisparity) dispSub = count_subscribers(mPubDisparity->get_topic_name());
-    if (!topic_disable_mPubCloud) pcSub = count_subscribers(mPubCloud->get_topic_name());
+    if (!topic_disable_mPubDepth)     depthSub     = mPubDepth.getNumSubscribers();
+    if (!topic_disable_mPubConfMap)   confMapSub   = count_subscribers(mPubConfMap->get_topic_name());
+    if (!topic_disable_mPubDisparity) dispSub      = count_subscribers(mPubDisparity->get_topic_name());
+    if (!topic_disable_mPubCloud)     pcSub        = count_subscribers(mPubCloud->get_topic_name());
     if (!topic_disable_mPubDepthInfo) depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
 
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
+    
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_VD("isDepthRequired: Exception while counting subscribers");
@@ -7670,16 +7671,11 @@ bool ZedCamera::isPosTrackingRequired()
 
   size_t topics_sub = 0;
   try {
-    if (!topic_disable_mPubPose) topics_sub += count_subscribers(mPubPose->get_topic_name());
-    if (!topic_disable_mPubPoseCov) topics_sub += count_subscribers(mPubPoseCov->get_topic_name());
+    if (!topic_disable_mPubPose)     topics_sub += count_subscribers(mPubPose->get_topic_name());
+    if (!topic_disable_mPubPoseCov)  topics_sub += count_subscribers(mPubPoseCov->get_topic_name());
     if (!topic_disable_mPubPosePath) topics_sub += count_subscribers(mPubPosePath->get_topic_name());
-    if (!topic_disable_mPubOdom) topics_sub += count_subscribers(mPubOdom->get_topic_name());
+    if (!topic_disable_mPubOdom)     topics_sub += count_subscribers(mPubOdom->get_topic_name());
     if (!topic_disable_mPubOdomPath) topics_sub += count_subscribers(mPubOdomPath->get_topic_name());
-    /*topics_sub += count_subscribers(mPubPose->get_topic_name()) +
-      count_subscribers(mPubPoseCov->get_topic_name()) +
-      count_subscribers(mPubPosePath->get_topic_name()) +
-      count_subscribers(mPubOdom->get_topic_name()) +
-      count_subscribers(mPubOdomPath->get_topic_name());      */
   } catch (...) {
     rcutils_reset_error();
     RCLCPP_WARN(get_logger(), "isPosTrackingRequired: Exception while counting subscribers");
@@ -7902,14 +7898,11 @@ void ZedCamera::callback_pubTemp()
     leftTempMsg->temperature = static_cast<double>(mTempLeft);
     leftTempMsg->variance = 0.0;
 
-    if (!topic_disable_mPubTempL) mPubTempL->publish(std::move(leftTempMsg));
-/*  //I think that this should be here instead:
     if (!topic_disable_mPubTempL)
     {
       DEBUG_STREAM_SENS("Publishing LEFT TEMP message");
       mPubTempL->publish(std::move(leftTempMsg));
     }
-*/
   }
 
   if (tempRightSubNumber > 0) {
