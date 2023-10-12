@@ -39,6 +39,7 @@ protected:
   // ----> Initialization functions
   void initParameters();
   void initServices();
+  void initThreads();
 
   void getTopicFilterParams();
 
@@ -53,6 +54,7 @@ protected:
   void getMappingParams();
   void getOdParams();
   void getBodyTrkParams();
+  void getAdvancedParams();
 
   void setTFCoordFrameNames();
   void initPublishers();
@@ -75,7 +77,6 @@ protected:
   // <---- Initialization functions
 
   // ----> Callbacks
-  void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
@@ -298,6 +299,7 @@ private:
   bool mDebugMapping = false;
   bool mDebugObjectDet = false;
   bool mDebugBodyTrk = false;
+  bool mDebugAdvanced = false;
 
   int mCamId = 0;
   int mCamSerialNumber = 0;
@@ -332,12 +334,13 @@ private:
   double mSensPubRate = 400.;
   bool mPosTrackingEnabled = false;
 
-  bool mPublishTF = true;
-  bool mPublishMapTF = true;
-  bool mPublishImuTF = true;
+  bool mPublishTF = false;
+  bool mPublishMapTF = false;
+  bool mPublishImuTF = false;
   bool mPoseSmoothing = false;
   bool mAreaMemory = true;
   std::string mAreaMemoryDbPath = "";
+  sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
   bool mImuFusion = true;
   bool mFloorAlignment = false;
   bool mTwoDMode = false;
@@ -418,12 +421,17 @@ private:
   rclcpp::QoS mBodyTrkQos;
   rclcpp::QoS mClickedPtQos;
   rclcpp::QoS mGnssFixQos;
+
+  std::string mThreadSchedPolicy;
+  int mThreadPrioGrab;
+  int mThreadPrioSens;
+  int mThreadPrioPointCloud;
   // <---- Parameter variables
 
   // ----> Dynamic params
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
-  double mPubFrameRate = 15;
+  double mPubFrameRate = 15.0;
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;
@@ -518,9 +526,13 @@ private:
 
   // ----> TF Transforms Flags
   bool mSensor2BaseTransfValid = false;
+  bool mSensor2BaseTransfFirstErr = true;
   bool mSensor2CameraTransfValid = false;
+  bool mSensor2CameraTransfFirstErr = true;
   bool mCamera2BaseTransfValid = false;
+  bool mCamera2BaseFirstErr = true;
   bool mGnss2BaseTransfValid = false;
+  bool mGnss2BaseTransfFirstErr = true;
   bool mMap2UtmTransfValid = false;
 
   std::atomic_uint16_t mAiInstanceID;
@@ -645,19 +657,15 @@ private:
   // <---- Threads and Timers
 
   // ----> Thread Sync
-  // std::mutex mCloseZedMutex;
-  std::mutex mVideoDepthMutex;
-  std::mutex mPcMutex;
   std::mutex mRecMutex;
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
   std::mutex mBodyTrkMutex;
-  std::condition_variable mVideoDepthDataReadyCondVar;
+  std::mutex mPcMutex;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
-  std::atomic_bool mVideoDepthDataReady;
   // <---- Thread Sync
 
   // ----> Status Flags
@@ -712,7 +720,7 @@ private:
   bool mGnssInitGood = false;
   // <---- Positional Tracking
 
-  // Diagnostic
+  // ----> Diagnostic
   float mTempImu = NOT_VALID_TEMP;
   float mTempLeft = NOT_VALID_TEMP;
   float mTempRight = NOT_VALID_TEMP;
@@ -742,9 +750,36 @@ private:
 
   diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
 
+  sl_tools::StopWatch mImuTfFreqTimer;
+  sl_tools::StopWatch mGrabFreqTimer;
+  sl_tools::StopWatch mImuFreqTimer;
+  sl_tools::StopWatch mBaroFreqTimer;
+  sl_tools::StopWatch mMagFreqTimer;
+  sl_tools::StopWatch mOdomFreqTimer;
+  sl_tools::StopWatch mPoseFreqTimer;
+  sl_tools::StopWatch mPcPubFreqTimer;
+  sl_tools::StopWatch mVdPubFreqTimer;
+  sl_tools::StopWatch mSensPubFreqTimer;
+  sl_tools::StopWatch mOdFreqTimer;
+  sl_tools::StopWatch mBtFreqTimer;
+  sl_tools::StopWatch mPcFreqTimer;
+  sl_tools::StopWatch mGnssFixFreqTimer;
+
+  int mSysOverloadCount = 0;
+  // <---- Diagnostic
+
   // ----> Timestamps
+  sl::Timestamp mLastTs_grab = 0;  // Used to calculate stable publish frequency
   rclcpp::Time mFrameTimestamp;
   rclcpp::Time mGnssTimestamp;
+  rclcpp::Time mLastTs_imu;
+  rclcpp::Time mLastTs_baro;
+  rclcpp::Time mLastTs_mag;
+  rclcpp::Time mLastTs_odom;
+  rclcpp::Time mLastTs_pose;
+  rclcpp::Time mLastTs_pc;
+  rclcpp::Time mPrevTs_pc;
+  uint64_t mLastTs_gnss_nsec = 0;
   // <---- Timestamps
 
   // ----> SVO Recording parameters

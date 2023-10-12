@@ -16,6 +16,7 @@
 #include <type_traits>
 #include <vector>
 #include <limits>
+#include <sys/resource.h>
 
 #include "zed_camera_component.hpp"
 #include "sl_logging.hpp"
@@ -69,7 +70,30 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mClickedPtQos(1),
   mGnssFixQos(1),
   mAiInstanceID(0),
-  mDiagUpdater(this)
+  mDiagUpdater(this),
+  mImuTfFreqTimer(get_clock()),
+  mGrabFreqTimer(get_clock()),
+  mImuFreqTimer(get_clock()),
+  mBaroFreqTimer(get_clock()),
+  mMagFreqTimer(get_clock()),
+  mOdomFreqTimer(get_clock()),
+  mPoseFreqTimer(get_clock()),
+  mPcPubFreqTimer(get_clock()),
+  mVdPubFreqTimer(get_clock()),
+  mSensPubFreqTimer(get_clock()),
+  mOdFreqTimer(get_clock()),
+  mBtFreqTimer(get_clock()),
+  mPcFreqTimer(get_clock()),
+  mGnssFixFreqTimer(get_clock()),
+  mFrameTimestamp(TIMEZERO_ROS),
+  mGnssTimestamp(TIMEZERO_ROS),
+  mLastTs_imu(TIMEZERO_ROS),
+  mLastTs_baro(TIMEZERO_ROS),
+  mLastTs_mag(TIMEZERO_ROS),
+  mLastTs_odom(TIMEZERO_ROS),
+  mLastTs_pose(TIMEZERO_ROS),
+  mLastTs_pc(TIMEZERO_ROS),
+  mPrevTs_pc(TIMEZERO_ROS)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -394,6 +418,8 @@ void ZedCamera::initParameters()
     mObjDetEnabled = false;
     mBodyTrkEnabled = false;
   }
+
+  getAdvancedParams();
 }
 
 std::string ZedCamera::parseRoiPoly(
@@ -548,9 +574,12 @@ void ZedCamera::getDebugParams()
     get_logger(), " * Debug Body Tracking: %s",
     mDebugBodyTrk ? "TRUE" : "FALSE");
 
+  getParam("debug.debug_advanced", mDebugAdvanced, mDebugAdvanced);
+  RCLCPP_INFO(get_logger(), " * Debug Advanced: %s", mDebugAdvanced ? "TRUE" : "FALSE");
+
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugCamCtrl || mDebugPointCloud ||
     mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping ||
-    mDebugObjectDet || mDebugBodyTrk;
+    mDebugObjectDet || mDebugBodyTrk || mDebugAdvanced;
 
   if (mDebugMode) {
     rcutils_ret_t res =
@@ -746,9 +775,14 @@ void ZedCamera::getGeneralParams()
 
   // Dynamic parameters
 
-  getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", true);
+  getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", false);
   if (mPubFrameRate > mCamGrabFrameRate) {
     RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'");
+    mPubFrameRate = mCamGrabFrameRate;
+  }
+  if (mPubFrameRate < 0.1) {
+    RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be lower than 0.1 Hz or negative.");
+    mPubFrameRate = mCamGrabFrameRate;
   }
   RCLCPP_INFO_STREAM(get_logger(), " * [DYN] Publish framerate [Hz]:  " << mPubFrameRate);
 }
@@ -978,8 +1012,16 @@ void ZedCamera::getDepthParams()
     RCLCPP_INFO(
       get_logger(), " * OpenNI mode (16bit point cloud): %s", mOpenniDepthMode ? "TRUE" : "FALSE");
 
-    getParam(
-      "depth.point_cloud_freq", mPcPubRate, mPcPubRate, " * [DYN] Point cloud rate [Hz]: ", true);
+    getParam("depth.point_cloud_freq", mPcPubRate, mPcPubRate, "", true);
+    if (mPcPubRate > mPubFrameRate) {
+      RCLCPP_WARN(get_logger(), "'point_cloud_freq' cannot be bigger than 'pub_frame_rate'");
+      mPcPubRate = mPubFrameRate;
+    }
+    if (mPcPubRate < 0.1) {
+      RCLCPP_WARN(get_logger(), "'point_cloud_freq' cannot be lower than 0.1 Hz or negative.");
+      mPcPubRate = mPubFrameRate;
+    }
+    RCLCPP_INFO_STREAM(get_logger(), " * [DYN] Point cloud rate [Hz]: " << mPcPubRate);
 
     getParam("depth.depth_confidence", mDepthConf, mDepthConf, " * [DYN] Depth Confidence: ", true);
     getParam(
@@ -1077,6 +1119,11 @@ void ZedCamera::getSensorsParams()
     RCLCPP_WARN(get_logger(), "!!! SENSORS parameters are not used with ZED !!!");
     return;
   }
+
+  getParam("sensors.publish_imu_tf", mPublishImuTF, mPublishImuTF);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Broadcast IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
 
   getParam("sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync);
   RCLCPP_INFO_STREAM(
@@ -1287,6 +1334,24 @@ void ZedCamera::getPosTrackingParams()
   RCLCPP_INFO_STREAM(
     get_logger(), " * Positional tracking enabled: " << (mPosTrackingEnabled ? "TRUE" : "FALSE"));
 
+  std::string pos_trk_mode;
+  getParam("pos_tracking.pos_tracking_mode", pos_trk_mode, pos_trk_mode);
+  if (pos_trk_mode == "QUALITY") {
+    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+  } else if (pos_trk_mode == "STANDARD") {
+    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::STANDARD;
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "'pos_tracking.pos_tracking_mode' not valid ('" << pos_trk_mode <<
+        "'). Using default value.");
+    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Positional tracking mode: " << sl::toString(
+      mPosTrkMode).c_str());
+
+
   getParam("pos_tracking.base_frame", mBaseFrameId, mBaseFrameId, " * Base frame id: ");
   getParam("pos_tracking.map_frame", mMapFrameId, mMapFrameId, " * Map frame id: ");
   getParam("pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId, " * Odometry frame id: ");
@@ -1295,13 +1360,10 @@ void ZedCamera::getPosTrackingParams()
   RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Odometry TF: " << (mPublishTF ? "TRUE" : "FALSE"));
   if (mPublishTF) {
     getParam("pos_tracking.publish_map_tf", mPublishMapTF, mPublishMapTF);
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Broadcast Pose TF: " << (mPublishMapTF ? "TRUE" : "FALSE"));
-    getParam("pos_tracking.publish_imu_tf", mPublishImuTF, mPublishImuTF);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
+  } else {
+    mPublishMapTF = false;
   }
+  RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Pose TF: " << (mPublishMapTF ? "TRUE" : "FALSE"));
 
   getParam(
     "pos_tracking.depth_min_range", mPosTrackDepthMinRange, mPosTrackDepthMinRange,
@@ -1898,6 +1960,41 @@ void ZedCamera::getBodyTrkParams()
   RCLCPP_INFO(
     get_logger(), " * Body Track. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 
+}
+
+void ZedCamera::getAdvancedParams()
+{
+  rclcpp::Parameter paramVal;
+  std::string paramName;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Advanced parameters ***");
+
+  getParam(
+    "advanced.thread_sched_policy", mThreadSchedPolicy, mThreadSchedPolicy,
+    " * Thread sched. policy: ");
+
+  if (mThreadSchedPolicy == "SCHED_FIFO" || mThreadSchedPolicy == "SCHED_RR") {
+    if (!sl_tools::checkRoot()) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'sudo' permissions required to set " << mThreadSchedPolicy <<
+          " thread scheduling policy. Using Linux default [SCHED_OTHER]");
+      mThreadSchedPolicy = "SCHED_OTHER";
+    } else {
+      getParam(
+        "advanced.thread_grab_priority", mThreadPrioGrab, mThreadPrioGrab,
+        " * Grab thread priority: ");
+      getParam(
+        "advanced.thread_sensor_priority", mThreadPrioSens, mThreadPrioSens,
+        " * Sensors thread priority: ");
+      getParam(
+        "advanced.thread_pointcloud_priority", mThreadPrioPointCloud, mThreadPrioPointCloud,
+        " * Point Cloud thread priority: ");
+    }
+  }
 }
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
@@ -3497,6 +3594,7 @@ bool ZedCamera::startCamera()
     RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
 
     mInitParams.camera_fps = mCamGrabFrameRate;
+    mInitParams.grab_compute_capping_fps = static_cast<float>(mPubFrameRate);
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
 
     if (mCamSerialNumber == 0) {
@@ -4008,24 +4106,6 @@ bool ZedCamera::startCamera()
   mGnssFix_sec = std::make_unique<sl_tools::WinAvg>(10);
   // <---- Initialize Diagnostic statistics
 
-  // ----> Start Pointcloud thread
-  if (!mDepthDisabled) {
-    mPcDataReady = false;
-    // DEBUG_STREAM_PC( "on_activate -> mPcDataReady FALSE")
-    mPcThread = std::thread(&ZedCamera::threadFunc_pointcloudElab, this);
-  }
-  // <---- Start Pointcloud thread
-
-  // ----> Start Sensors thread if not sync
-  if (!mSvoMode && !mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
-    mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
-  }
-  // <---- Start Sensors thread if not sync
-
-  // Start positional tracking
-  //startPosTracking();
-  //mZed.grab();
-
   if (mGnssFusionEnabled) {
     DEBUG_GNSS("Initialize Fusion module");
     // ----> Initialize Fusion module
@@ -4088,19 +4168,37 @@ bool ZedCamera::startCamera()
     // <---- Initialize Fusion module
   }
 
-  // Start grab thread
-  mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
-
-  // Start data publishing timer
-  mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
-
-  // Start CMOS Temperatures thread
-  if (!mSimEnabled && !sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
-    startTempPubTimer();
-  }
+  // Init and start threads
+  initThreads();
 
   return true;
 }  // namespace stereolabs
+
+void ZedCamera::initThreads()
+{
+  // ----> Start CMOS Temperatures thread
+  if (!mSimEnabled && !sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
+    startTempPubTimer();
+  }
+  // <---- Start CMOS Temperatures thread
+
+  // ----> Start Sensors thread if not sync
+  if (!mSvoMode && !mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
+    mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
+  }
+  // <---- Start Sensors thread if not sync
+
+  // ----> Start Pointcloud thread
+  if (!mDepthDisabled) {
+    mPcDataReady = false;
+    // DEBUG_STREAM_PC( "on_activate -> mPcDataReady FALSE")
+    mPcThread = std::thread(&ZedCamera::threadFunc_pointcloudElab, this);
+  }
+  // <---- Start Pointcloud thread
+
+  // Start grab thread
+  mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
+}
 
 void ZedCamera::startTempPubTimer()
 {
@@ -4239,6 +4337,7 @@ bool ZedCamera::startPosTracking()
   trackParams.depth_min_range = mPosTrackDepthMinRange;
   trackParams.set_as_static = mSetAsStatic;
   trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
+  trackParams.mode = mPosTrkMode;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
@@ -4668,7 +4767,6 @@ bool ZedCamera::getCamera2BaseTransform()
                                << "' to '" << mBaseFrameId.c_str() << "'");
 
   mCamera2BaseTransfValid = false;
-  static bool first_error = true;
 
   // ----> Static transforms
   // Sensor to Base link
@@ -4699,7 +4797,7 @@ bool ZedCamera::getCamera2BaseTransform()
       get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG,
       yaw * RAD2DEG);
   } catch (tf2::TransformException & ex) {
-    if (!first_error) {
+    if (!mCamera2BaseFirstErr) {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
       RCLCPP_WARN_THROTTLE(
@@ -4714,7 +4812,7 @@ bool ZedCamera::getCamera2BaseTransform()
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
         mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
-      first_error = false;
+      mCamera2BaseFirstErr = false;
     }
 
     mCamera2BaseTransf.setIdentity();
@@ -4733,8 +4831,6 @@ bool ZedCamera::getSens2CameraTransform()
       "'");
 
   mSensor2CameraTransfValid = false;
-
-  static bool first_error = true;
 
   // ----> Static transforms
   // Sensor to Camera Center
@@ -4765,7 +4861,7 @@ bool ZedCamera::getSens2CameraTransform()
       get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG,
       yaw * RAD2DEG);
   } catch (tf2::TransformException & ex) {
-    if (!first_error) {
+    if (!mSensor2CameraTransfFirstErr) {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
       RCLCPP_WARN_THROTTLE(
@@ -4780,7 +4876,7 @@ bool ZedCamera::getSens2CameraTransform()
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
         mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
-      first_error = false;
+      mSensor2CameraTransfFirstErr = false;
     }
 
     mSensor2CameraTransf.setIdentity();
@@ -4799,7 +4895,7 @@ bool ZedCamera::getSens2BaseTransform()
       "'");
 
   mSensor2BaseTransfValid = false;
-  static bool first_error = true;
+
 
   // ----> Static transforms
   // Sensor to Base link
@@ -4830,7 +4926,7 @@ bool ZedCamera::getSens2BaseTransform()
       get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG,
       yaw * RAD2DEG);
   } catch (tf2::TransformException & ex) {
-    if (!first_error) {
+    if (!mSensor2BaseTransfFirstErr) {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
       RCLCPP_WARN_THROTTLE(
@@ -4845,7 +4941,7 @@ bool ZedCamera::getSens2BaseTransform()
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
         mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
-      first_error = false;
+      mSensor2BaseTransfFirstErr = false;
     }
 
     mSensor2BaseTransf.setIdentity();
@@ -4865,7 +4961,6 @@ bool ZedCamera::getGnss2BaseTransform()
     mBaseFrameId.c_str());
 
   mGnss2BaseTransfValid = false;
-  static bool first_error = true;
 
   // ----> Static transforms
   // Sensor to Base link
@@ -4895,7 +4990,7 @@ bool ZedCamera::getGnss2BaseTransform()
       get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG,
       yaw * RAD2DEG);
   } catch (tf2::TransformException & ex) {
-    if (!first_error) {
+    if (!mGnss2BaseTransfFirstErr) {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       DEBUG_STREAM_THROTTLE_GNSS(1.0, "Transform error: " << ex.what());
       RCLCPP_WARN_THROTTLE(
@@ -4910,7 +5005,7 @@ bool ZedCamera::getGnss2BaseTransform()
         "or a modified URDF not correctly reproducing the "
         "TF chain '%s' -> '%s'",
         mBaseFrameId.c_str(), mGnssFrameId.c_str());
-      first_error = false;
+      mGnss2BaseTransfFirstErr = false;
     }
 
     mGnss2BaseTransf.setIdentity();
@@ -5016,20 +5111,86 @@ void ZedCamera::publishImuFrameAndTopic()
   transformStamped.transform.translation.z = sl_tr.z;
 
   mTfBroadcaster->sendTransform(transformStamped);
-
   // <---- Publish TF
 
   // IMU TF publishing diagnostic
-  static sl_tools::StopWatch imuTfFreqTimer(get_clock());
-
-  double elapsed_sec = imuTfFreqTimer.toc();
+  double elapsed_sec = mImuTfFreqTimer.toc();
   mPubImuTF_sec->addValue(elapsed_sec);
-  imuTfFreqTimer.tic();
+  mImuTfFreqTimer.tic();
 }
 
 void ZedCamera::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Grab thread settings");
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default GRAB thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+
+  if (mThreadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = mThreadPrioGrab;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = mThreadPrioGrab;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New GRAB thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
 
   mFrameCount = 0;
 
@@ -5118,11 +5279,9 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Object Detection requirement
 
     // ----> Grab freq calculation
-    static sl_tools::StopWatch grabFreqTimer(get_clock());
-
-    double elapsed_sec = grabFreqTimer.toc();
+    double elapsed_sec = mGrabFreqTimer.toc();
     mGrabPeriodMean_sec->addValue(elapsed_sec);
-    grabFreqTimer.tic();
+    mGrabFreqTimer.tic();
 
     // RCLCPP_INFO_STREAM(get_logger(), "Grab period: "
     // << mGrabPeriodMean_sec->getAvg() / 1e6
@@ -5143,7 +5302,7 @@ void ZedCamera::threadFunc_zedGrab()
           RCLCPP_ERROR_STREAM(
             get_logger(),
             "Connection issue detected: " << sl::toString(mGrabStatus).c_str());
-          rclcpp::sleep_for(500ms);
+          rclcpp::sleep_for(1000ms);
           continue;
         } else {
           RCLCPP_ERROR_STREAM(
@@ -5234,40 +5393,23 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Retrieve Image/Depth data if someone has subscribed to
     // Retrieve data if there are subscriber to topics
     if (areVideoDepthSubscribed()) {
-      // Run the point cloud conversion asynchronously to avoid slowing down
-      // all the program
-      // Retrieve raw pointCloud data if latest Pointcloud is ready
-      std::unique_lock<std::mutex> vd_lock(mVideoDepthMutex, std::defer_lock);
+      DEBUG_STREAM_VD("Retrieving video/depth data");
+      retrieveVideoDepth();
 
-      if (vd_lock.try_lock()) {
-        DEBUG_STREAM_VD("Retrieving video/depth data");
-        retrieveVideoDepth();
+      rclcpp::Time pub_ts;
+      publishVideoDepth(pub_ts);
 
-        // Signal Pointcloud thread that a new pointcloud is ready
-        mVideoDepthDataReadyCondVar.notify_one();
-        mVideoDepthDataReady = true;
-        mVdPublishing = true;
+      if (!sl_tools::isZED(mCamRealModel) && mVdPublishing && pub_ts != TIMEZERO_ROS) {
+        if (mSensCameraSync || mSvoMode) {
+          publishSensorsData(pub_ts);
+        }
       }
+
+      mVdPublishing = true;
     } else {
       mVdPublishing = false;
     }
     // <---- Retrieve Image/Depth data if someone has subscribed to
-
-    if (!mDepthDisabled) {
-      if (mPosTrackingStarted) {
-        if (!mSvoPause) {
-          processOdometry();
-          processPose();
-          if (mGnssFusionEnabled) {
-            processGeoPose();
-          }
-        }
-
-        // Publish `odom` and `map` TFs at the grab frequency
-        // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
-        publishTFs(mFrameTimestamp);
-      }
-    }
 
     // ----> Retrieve the point cloud if someone has subscribed to
     if (!mDepthDisabled) {
@@ -5303,6 +5445,24 @@ void ZedCamera::threadFunc_zedGrab()
       }
     }
     // <---- Retrieve the point cloud if someone has subscribed to
+
+    // ----> Localization processing
+    if (!mDepthDisabled) {
+      if (mPosTrackingStarted) {
+        if (!mSvoPause) {
+          processOdometry();
+          processPose();
+          if (mGnssFusionEnabled) {
+            processGeoPose();
+          }
+        }
+
+        // Publish `odom` and `map` TFs at the grab frequency
+        // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
+        publishTFs(mFrameTimestamp);
+      }
+    }
+    // <---- Localization processing
 
     if (!mDepthDisabled) {
       mObjDetMutex.lock();
@@ -5366,10 +5526,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
   rclcpp::Time now = get_clock()->now();
 
-  static rclcpp::Time lastTs_imu = now;
-  static rclcpp::Time lastTs_baro = now;
-  static rclcpp::Time lastTs_mag = now;
-
   sl::SensorsData sens_data;
 
   if (mSvoMode || mSensCameraSync || mSimEnabled) {
@@ -5402,14 +5558,14 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // <---- Grab data and setup timestamps
 
   // ----> Check for duplicated data
-  bool new_imu_data = ts_imu != lastTs_imu;
+  bool new_imu_data = ts_imu != mLastTs_imu;
   double sens_period = 1. / mSensPubRate;
-  double dT = ts_imu.seconds() - lastTs_imu.seconds();
+  double dT = ts_imu.seconds() - mLastTs_imu.seconds();
 
-  bool new_baro_data = ts_baro != lastTs_baro;
-  lastTs_baro = ts_baro;
-  bool new_mag_data = ts_mag != lastTs_mag;
-  lastTs_mag = ts_mag;
+  bool new_baro_data = ts_baro != mLastTs_baro;
+  mLastTs_baro = ts_baro;
+  bool new_mag_data = ts_mag != mLastTs_mag;
+  mLastTs_mag = ts_mag;
 
   if (!new_imu_data && !new_baro_data && !new_mag_data) {
     DEBUG_STREAM_SENS("No new sensors data");
@@ -5422,33 +5578,27 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   }
   // <---- Check for duplicated data
 
-  lastTs_imu = ts_imu;
+  mLastTs_imu = ts_imu;
 
   DEBUG_STREAM_SENS("SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
 
   // ----> Sensors freq for diagnostic
   if (new_imu_data) {
-    static sl_tools::StopWatch imuFreqTimer(get_clock());
-
-    double mean = mImuPeriodMean_sec->addValue(imuFreqTimer.toc());
-    imuFreqTimer.tic();
+    double mean = mImuPeriodMean_sec->addValue(mImuFreqTimer.toc());
+    mImuFreqTimer.tic();
 
     DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
   }
 
   if (new_baro_data) {
-    static sl_tools::StopWatch baroFreqTimer(get_clock());
-
-    double mean = mBaroPeriodMean_sec->addValue(baroFreqTimer.toc());
-    baroFreqTimer.tic();
+    double mean = mBaroPeriodMean_sec->addValue(mBaroFreqTimer.toc());
+    mBaroFreqTimer.tic();
     DEBUG_STREAM_SENS("Barometer freq: " << 1. / mean);
   }
 
   if (new_mag_data) {
-    static sl_tools::StopWatch magFreqTimer(get_clock());
-
-    double mean = mMagPeriodMean_sec->addValue(magFreqTimer.toc());
-    magFreqTimer.tic();
+    double mean = mMagPeriodMean_sec->addValue(mMagFreqTimer.toc());
+    mMagFreqTimer.tic();
 
     DEBUG_STREAM_SENS("Magnetometer freq: " << 1. / mean);
   }
@@ -5670,12 +5820,10 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
   // DEBUG_STREAM_PT("publishOdomTF");
 
   // ----> Avoid duplicated TF publishing
-  static rclcpp::Time last_stamp = TIMEZERO_ROS;
-
-  if (t == last_stamp) {
+  if (t == mLastTs_odom) {
     return;
   }
-  last_stamp = t;
+  mLastTs_odom = t;
   // <---- Avoid duplicated TF publishing
 
   if (!mSensor2BaseTransfValid) {
@@ -5713,11 +5861,9 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
   mTfBroadcaster->sendTransform(transformStamped);
 
   // Odom TF publishing diagnostic
-  static sl_tools::StopWatch odomFreqTimer(get_clock());
-
-  double elapsed_sec = odomFreqTimer.toc();
+  double elapsed_sec = mOdomFreqTimer.toc();
   mPubOdomTF_sec->addValue(elapsed_sec);
-  odomFreqTimer.tic();
+  mOdomFreqTimer.tic();
 }
 
 void ZedCamera::publishPoseTF(rclcpp::Time t)
@@ -5725,12 +5871,10 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   // DEBUG_STREAM_PT("publishPoseTF");
 
   // ----> Avoid duplicated TF publishing
-  static rclcpp::Time last_stamp = TIMEZERO_ROS;
-
-  if (t == last_stamp) {
+  if (t == mLastTs_pose) {
     return;
   }
-  last_stamp = t;
+  mLastTs_pose = t;
   // <---- Avoid duplicated TF publishing
 
   if (!mSensor2BaseTransfValid) {
@@ -5765,16 +5909,84 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   mTfBroadcaster->sendTransform(transformStamped);
 
   // Pose TF publishing diagnostic
-  static sl_tools::StopWatch poseFreqTimer(get_clock());
-
-  double elapsed_sec = poseFreqTimer.toc();
+  double elapsed_sec = mPoseFreqTimer.toc();
   mPubPoseTF_sec->addValue(elapsed_sec);
-  poseFreqTimer.tic();
+  mPoseFreqTimer.tic();
 }
 
 void ZedCamera::threadFunc_pointcloudElab()
 {
   DEBUG_STREAM_PC("Point Cloud thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Point Cloud thread settings");
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default Point Cloud thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+
+  if (mThreadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = mThreadPrioPointCloud;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = mThreadPrioPointCloud;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New Point Cloud thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
+
   mPcDataReady = false;
 
   std::unique_lock<std::mutex> lock(mPcMutex);
@@ -5820,14 +6032,13 @@ void ZedCamera::threadFunc_pointcloudElab()
     // ----> Check publishing frequency
     double pc_period_usec = 1e6 / mPcPubRate;
 
-    static sl_tools::StopWatch pcPubFreqTimer(get_clock());
-    double elapsed_usec = pcPubFreqTimer.toc() * 1e6;
+    double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
 
     if (elapsed_usec < pc_period_usec) {
       rclcpp::sleep_for(std::chrono::microseconds(static_cast<int>(pc_period_usec - elapsed_usec)));
     }
 
-    pcPubFreqTimer.tic();
+    mPcPubFreqTimer.tic();
     // <---- Check publishing frequency
 
     mPcDataReady = false;
@@ -5837,80 +6048,78 @@ void ZedCamera::threadFunc_pointcloudElab()
   DEBUG_STREAM_PC("Pointcloud thread finished");
 }
 
-void ZedCamera::threadFunc_pubVideoDepth()
-{
-  DEBUG_STREAM_VD("Video Depth thread started");
-  mVideoDepthDataReady = false;
-
-  std::unique_lock<std::mutex> lock(mVideoDepthMutex);
-
-  while (1) {
-    if (!rclcpp::ok()) {
-      DEBUG_STREAM_VD("Ctrl+C received: stopping video depth thread");
-      break;
-    }
-
-    // DEBUG_STREAM_VD( "threadFunc_pubVideoDepth -> mVideoDepthDataReady value:
-    // %s", mVideoDepthDataReady ? "TRUE" : "FALSE");
-
-    while (!mVideoDepthDataReady) {  // loop to avoid spurious wakeups
-      if (
-        mVideoDepthDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
-        std::cv_status::timeout)
-      {
-        // Check thread stopping
-        if (!rclcpp::ok()) {
-          DEBUG_STREAM_VD("Ctrl+C received: stopping video depth thread");
-          mThreadStop = true;
-          break;
-        }
-        if (mThreadStop) {
-          DEBUG_STREAM_VD("threadFunc_pubVideoDepth (2): video depth thread stopped");
-          break;
-        } else {
-          // DEBUG_STREAM_VD( "threadFunc_pubVideoDepth -> WAIT FOR DATA");
-          continue;
-        }
-      }
-    }
-
-    if (mThreadStop) {
-      DEBUG_STREAM_VD("threadFunc_pubVideoDepth (1): video depth thread stopped");
-      break;
-    }
-
-    rclcpp::Time pub_ts;
-    publishVideoDepth(pub_ts);
-
-    if (!sl_tools::isZED(mCamRealModel) && mVdPublishing && pub_ts != TIMEZERO_ROS) {
-      if (mSensCameraSync || mSvoMode) {
-        publishSensorsData(pub_ts);
-      }
-    }
-
-    // ----> Check publishing frequency
-    double vd_period_usec = 1e6 / mPubFrameRate;
-
-    static sl_tools::StopWatch vdPubFreqTimer(get_clock());
-    double elapsed_usec = vdPubFreqTimer.toc() * 1e6;
-
-    if (elapsed_usec < vd_period_usec) {
-      rclcpp::sleep_for(std::chrono::microseconds(static_cast<int>(vd_period_usec - elapsed_usec)));
-    }
-
-    vdPubFreqTimer.tic();
-    // <---- Check publishing frequency
-
-    mVideoDepthDataReady = false;
-    // DEBUG_STREAM_VD( "threadFunc_pubVideoDepth -> mVideoDepthDataReady FALSE")
-  }
-
-  DEBUG_STREAM_VD("Pointcloud thread finished");
-}
-
 void ZedCamera::threadFunc_pubSensorsData()
 {
   DEBUG_STREAM_SENS("Sensors thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Sensors thread settings");
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default Sensors thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+
+  if (mThreadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = mThreadPrioSens;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = mThreadPrioSens;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New Sensors thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
 
   while (1) {
     if (!rclcpp::ok()) {
@@ -5948,15 +6157,14 @@ void ZedCamera::threadFunc_pubSensorsData()
     // ----> Check publishing frequency
     double sens_period_usec = 1e6 / mSensPubRate;
 
-    static sl_tools::StopWatch sensPubFreqTimer(get_clock());
-    double elapsed_usec = sensPubFreqTimer.toc() * 1e6;
+    double elapsed_usec = mSensPubFreqTimer.toc() * 1e6;
 
     if (elapsed_usec < sens_period_usec) {
       rclcpp::sleep_for(
         std::chrono::microseconds(static_cast<int>(sens_period_usec - elapsed_usec)));
     }
 
-    sensPubFreqTimer.tic();
+    mSensPubFreqTimer.tic();
     // <---- Check publishing frequency
   }
 
@@ -6123,11 +6331,9 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 {
   sl_tools::StopWatch vdElabTimer(get_clock());
 
-  static sl::Timestamp lastZedTs = 0;  // Used to calculate stable publish frequency
-
   // ----> Check RGB/Depth sync
-  static sl::Timestamp ts_rgb = 0;
-  static sl::Timestamp ts_depth = 0;
+  sl::Timestamp ts_rgb = 0;
+  sl::Timestamp ts_depth = 0;
 
   if (mRgbSubscribed && (mDepthSubnumber > 0 || mDepthInfoSubnumber > 0)) {
     ts_rgb = mMatLeft.timestamp;
@@ -6137,6 +6343,9 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       RCLCPP_WARN_STREAM(
         get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: " <<
           1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");
+      RCLCPP_WARN(
+        get_logger(),
+        "NOTE: this should never happen, please contact the node maintainer in case you get this warning.");
     }
   }
   // <---- Check RGB/Depth sync
@@ -6145,15 +6354,15 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   vdElabTimer.tic();
 
   // ----> Check if a grab has been done before publishing the same images
-  if (mSdkGrabTS.data_ns == lastZedTs.data_ns) {
+  if (mSdkGrabTS.data_ns == mLastTs_grab.data_ns) {
     out_pub_ts = TIMEZERO_ROS;
     // Data not updated by a grab calling in the grab thread
     DEBUG_STREAM_VD("publishVideoDepth: ignoring not update data");
     return;
   }
 
-  if (lastZedTs.data_ns != 0) {
-    double period_sec = static_cast<double>(mSdkGrabTS.data_ns - lastZedTs.data_ns) / 1e9;
+  if (mLastTs_grab.data_ns != 0) {
+    double period_sec = static_cast<double>(mSdkGrabTS.data_ns - mLastTs_grab.data_ns) / 1e9;
     DEBUG_STREAM_VD(
       "VIDEO/DEPTH PUB LAST PERIOD: " << period_sec << " sec @" << 1. / period_sec << " Hz");
 
@@ -6162,10 +6371,10 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getAvg() << " sec @"
                                       << 1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
   }
-  lastZedTs = mSdkGrabTS;
+  mLastTs_grab = mSdkGrabTS;
   // <---- Check if a grab has been done before publishing the same images
 
-  static rclcpp::Time timeStamp;
+  rclcpp::Time timeStamp;
   if (mSvoMode || mSimEnabled) {
     timeStamp = mFrameTimestamp;
   } else {
@@ -6176,30 +6385,30 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the left=rgb image if someone has subscribed to
   if (mLeftSubnumber > 0) {
-    publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbSubnumber > 0) {
-    publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left=rgb image if someone has subscribed to
 
   // ----> Publish the left_raw=rgb_raw image if someone has subscribed to
   if (mLeftRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
+      mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbRawSubnumber > 0) {
-    publishImageWithInfo(mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
   // ----> Publish the left_gray=rgb_gray image if someone has subscribed to
   if (mLeftGraySubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
+      mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbGraySubnumber > 0) {
-    publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
@@ -6207,45 +6416,45 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // subscribed to
   if (mLeftGrayRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
+      mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbGrayRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, timeStamp);
+      mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
   }
   // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has
   // subscribed to
 
   // ----> Publish the right image if someone has subscribed to
   if (mRightSubnumber > 0) {
-    publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
+    publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right image if someone has subscribed to
 
   // ----> Publish the right raw image if someone has subscribed to
   if (mRightRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
+      mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right raw image if someone has subscribed to
 
   // ----> Publish the right gray image if someone has subscribed to
   if (mRightGraySubnumber > 0) {
     publishImageWithInfo(
-      mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
+      mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right gray image if someone has subscribed to
 
   // ----> Publish the right raw gray image if someone has subscribed to
   if (mRightGrayRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
+      mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right raw gray image if someone has subscribed to
 
   // ----> Publish the side-by-side image if someone has subscribed to
   if (mStereoSubnumber > 0) {
-    auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, timeStamp);
+    auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, out_pub_ts);
     DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE message");
     mPubStereo.publish(std::move(combined));
   }
@@ -6254,7 +6463,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // ----> Publish the side-by-side image if someone has subscribed to
   if (mStereoRawSubnumber > 0) {
     auto combined =
-      sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, timeStamp);
+      sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, out_pub_ts);
     DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE RAW message");
     mPubRawStereo.publish(std::move(combined));
   }
@@ -6262,20 +6471,20 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ---->  Publish the depth image if someone has subscribed to
   if (mDepthSubnumber > 0) {
-    publishDepthMapWithInfo(mMatDepth, timeStamp);
+    publishDepthMapWithInfo(mMatDepth, out_pub_ts);
   }
   // <----  Publish the depth image if someone has subscribed to
 
   // ---->  Publish the confidence image and map if someone has subscribed to
   if (mConfMapSubnumber > 0) {
     DEBUG_STREAM_VD("Publishing CONF MAP message");
-    mPubConfMap->publish(*sl_tools::imageToROSmsg(mMatConf, mDepthOptFrameId, timeStamp));
+    mPubConfMap->publish(*sl_tools::imageToROSmsg(mMatConf, mDepthOptFrameId, out_pub_ts));
   }
   // <----  Publish the confidence image and map if someone has subscribed to
 
   // ----> Publish the disparity image if someone has subscribed to
   if (mDisparitySubnumber > 0) {
-    publishDisparity(mMatDisp, timeStamp);
+    publishDisparity(mMatDisp, out_pub_ts);
   }
   // <---- Publish the disparity image if someone has subscribed to
 
@@ -6297,6 +6506,18 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // Diagnostic statistic
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
+
+  // ----> Check publishing frequency
+  double vd_period_usec = 1e6 / mPubFrameRate;
+
+  double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
+
+  if (elapsed_usec < vd_period_usec) {
+    rclcpp::sleep_for(std::chrono::microseconds(static_cast<int>(vd_period_usec - elapsed_usec)));
+  }
+
+  mVdPubFreqTimer.tic();
+  // <---- Check publishing frequency
 }
 
 void ZedCamera::publishImageWithInfo(
@@ -6305,7 +6526,7 @@ void ZedCamera::publishImageWithInfo(
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
-  DEBUG_STREAM_VD("Publishing IMAGE message");
+  DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   pubImg.publish(std::move(image), camInfoMsg);
 }
 
@@ -7037,7 +7258,6 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   }
 
   sl_tools::StopWatch odElabTimer(get_clock());
-  static sl_tools::StopWatch odFreqTimer(get_clock());
 
   mObjDetSubscribed = true;
 
@@ -7151,8 +7371,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   // ----> Diagnostic information update
   mObjDetElabMean_sec->addValue(odElabTimer.toc());
-  mObjDetPeriodMean_sec->addValue(odFreqTimer.toc());
-  odFreqTimer.tic();
+  mObjDetPeriodMean_sec->addValue(mOdFreqTimer.toc());
+  mOdFreqTimer.tic();
   // <---- Diagnostic information update
 }
 
@@ -7176,7 +7396,6 @@ void ZedCamera::processBodies(rclcpp::Time t)
   }
 
   sl_tools::StopWatch btElabTimer(get_clock());
-  static sl_tools::StopWatch btFreqTimer(get_clock());
 
   mBodyTrkSubscribed = true;
 
@@ -7296,8 +7515,8 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   // ----> Diagnostic information update
   mBodyTrkElabMean_sec->addValue(btElabTimer.toc());
-  mBodyTrkPeriodMean_sec->addValue(btFreqTimer.toc());
-  btFreqTimer.tic();
+  mBodyTrkPeriodMean_sec->addValue(mBtFreqTimer.toc());
+  mBtFreqTimer.tic();
   // <---- Diagnostic information update
 }
 
@@ -7697,7 +7916,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
   if (!mOpenniDepthMode && topic_publish_mPubDepth) {
     auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
-    DEBUG_STREAM_VD("Publishing DEPTH message");
+    DEBUG_STREAM_VD("Publishing DEPTH message: " << t.nanoseconds() << " nsec");
     mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
     return;
   }
@@ -7764,8 +7983,6 @@ void ZedCamera::publishPointCloud()
 {
   sl_tools::StopWatch pcElabTimer(get_clock());
 
-  static rclcpp::Time lastPcTs = TIMEZERO_ROS;
-
   pointcloudMsgPtr pcMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
   // Initialize Point Cloud message
@@ -7785,12 +8002,12 @@ void ZedCamera::publishPointCloud()
 
   // ---> Check that `pcMsg->header.stamp` is not the same of the latest published pointcloud
   // Avoid to publish the same old data
-  if (lastPcTs == pcMsg->header.stamp) {
+  if (mLastTs_pc == pcMsg->header.stamp) {
     // Data not updated by a grab calling in the grab thread
     DEBUG_STREAM_PC("publishPointCloud: ignoring not update data");
     return;
   }
-  lastPcTs = pcMsg->header.stamp;
+  mLastTs_pc = pcMsg->header.stamp;
   // <--- Check that `pcMsg->header.stamp` is not the same of the latest published pointcloud
 
 
@@ -7824,9 +8041,8 @@ void ZedCamera::publishPointCloud()
   }
 
   // Publish freq calculation
-  static sl_tools::StopWatch pcfreqTimer(get_clock());
-  double mean = mPcPeriodMean_sec->addValue(pcfreqTimer.toc());
-  pcfreqTimer.tic();
+  double mean = mPcPeriodMean_sec->addValue(mPcFreqTimer.toc());
+  mPcFreqTimer.tic();
 
   // Point cloud elaboration time
   mPcProcMean_sec->addValue(pcElabTimer.toc());
@@ -7942,7 +8158,6 @@ void ZedCamera::callback_pubFusedPc()
 {
   DEBUG_STREAM_ONCE_MAP("Mapping callback called");
 
-  static rclcpp::Time prev_ts = TIMEZERO_ROS;
 
   pointcloudMsgPtr pointcloudFusedMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
@@ -8025,14 +8240,14 @@ void ZedCamera::callback_pubFusedPc()
 
   rclcpp::Time ros_ts = get_clock()->now();
 
-  // RCLCPP_INFO_STREAM(get_logger(), "callback_pubFusedPc - prev_ts type:" <<
-  // prev_ts.get_clock_type());
+  // RCLCPP_INFO_STREAM(get_logger(), "callback_pubFusedPc - mPrevTs_pc type:" <<
+  // mPrevTs_pc.get_clock_type());
 
-  if (prev_ts != TIMEZERO_ROS) {
-    double mean = mPubFusedCloudPeriodMean_sec->addValue((ros_ts - prev_ts).seconds());
+  if (mPrevTs_pc != TIMEZERO_ROS) {
+    double mean = mPubFusedCloudPeriodMean_sec->addValue((ros_ts - mPrevTs_pc).seconds());
     // RCLCPP_INFO_STREAM( get_logger(),"Fused Cloud Pub freq: " << 1.0/mean );
   }
-  prev_ts = ros_ts;
+  mPrevTs_pc = ros_ts;
 
   // Pointcloud publishing
   if (topic_publish_mPubFusedCloud)
@@ -8536,26 +8751,27 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS) {
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
-    double freq_perc = 100. * freq / mCamGrabFrameRate;
+    double freq_perc = 100. * freq / mPubFrameRate;
     stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
     double frame_proc_sec = mElabPeriodMean_sec->getAvg();
-    double frame_grab_period = 1. / mCamGrabFrameRate;
+    //double frame_grab_period = 1. / mCamGrabFrameRate;
+    double frame_grab_period = 1. / mPubFrameRate;
     stat.addf(
       "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)", frame_proc_sec,
       frame_grab_period);
 
-    static int overload_count = 0;
+
     if (frame_proc_sec > frame_grab_period) {
-      overload_count++;
+      mSysOverloadCount++;
     }
 
-    if (overload_count >= 10) {
+    if (mSysOverloadCount >= 10) {
       stat.summary(
         diagnostic_msgs::msg::DiagnosticStatus::WARN,
-        "System overloaded. 'grab_frame_rate' too high.");
+        "System overloaded. Consider reducing 'general.pub_frame_rate' or 'general.grab_resolution'");
     } else {
-      overload_count = 0;
+      mSysOverloadCount = 0;
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
     }
 
@@ -8570,10 +8786,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     if (mVdPublishing) {
       freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
       freq_perc = 100. * freq / mPubFrameRate;
+      double frame_grab_period = 1. / mPubFrameRate;
       stat.addf("Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
       stat.addf(
         "Video/Depth", "Processing Time: %.6f sec (Max. %.3f sec)",
-        mVideoDepthElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+        mVideoDepthElabMean_sec->getAvg(), 1. / frame_grab_period);
     } else {
       stat.add("Video/Depth", "Topics not subscribed");
     }
@@ -8648,17 +8865,9 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
           } else {
             stat.add("TF Pose", "DISABLED");
           }
-
-          if (mPublishImuTF) {
-            double freq = 1. / mPubImuTF_sec->getAvg();
-            stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
-          } else {
-            stat.add("TF IMU", "DISABLED");
-          }
         } else {
           stat.add("TF Odometry", "DISABLED");
           stat.add("TF Pose", "DISABLED");
-          stat.add("TF IMU", "DISABLED");
         }
       } else {
         stat.add("Pos. Tracking status", "INACTIVE");
@@ -8668,10 +8877,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         if (mObjDetSubscribed) {
           double freq = 1. / mObjDetPeriodMean_sec->getAvg();
           double freq_perc = 100. * freq / mPubFrameRate;
+          double frame_grab_period = 1. / mPubFrameRate;
           stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
           stat.addf(
             "Object detection", "Processing Time: %.3f sec (Max. %.3f sec)",
-            mObjDetElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+            mObjDetElabMean_sec->getAvg(), 1. / frame_grab_period);
         } else {
           stat.add("Object Detection", "Active, topic not subscribed");
         }
@@ -8683,10 +8893,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         if (mBodyTrkSubscribed) {
           double freq = 1. / mBodyTrkPeriodMean_sec->getAvg();
           double freq_perc = 100. * freq / mPubFrameRate;
+          double frame_grab_period = 1. / mPubFrameRate;
           stat.addf("Body Tracking", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
           stat.addf(
             "Body Tracking", "Processing Time: %.3f sec (Max. %.3f sec)",
-            mBodyTrkElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+            mBodyTrkElabMean_sec->getAvg(), 1. / frame_grab_period);
         } else {
           stat.add("Body Tracking", "Active, topic not subscribed");
         }
@@ -8695,6 +8906,13 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       }
     } else {
       stat.add("Depth status", "INACTIVE");
+    }
+
+    if (mPublishImuTF) {
+      double freq = 1. / mPubImuTF_sec->getAvg();
+      stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
+    } else {
+      stat.add("TF IMU", "DISABLED");
     }
   } else {
     stat.summaryf(
@@ -8788,11 +9006,9 @@ void ZedCamera::callback_gnssPubTimerTimeout()
 void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 {
   // ----> GNSS Fix stats
-  static sl_tools::StopWatch gnssFixFreqTimer(get_clock());
-
-  double elapsed_sec = gnssFixFreqTimer.toc();
+  double elapsed_sec = mGnssFixFreqTimer.toc();
   mGnssFix_sec->addValue(elapsed_sec);
-  gnssFixFreqTimer.tic();
+  mGnssFixFreqTimer.tic();
   // <---- GNSS Fix stats
 
   if (!mGnssPubCheckTimer) {
@@ -8839,7 +9055,6 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   // ----> Check timestamp
   // Note: this is the ROS timestamp, not the GNSS timestamp that is available in a
   //       "sensor_msgs/TimeReference message", e.g. `/time_reference`
-  static uint64_t last_ts_gnss_nsec = 0;
   uint64_t ts_gnss_part_sec = static_cast<uint64_t>(msg->header.stamp.sec) * 1000000000;
   uint64_t ts_gnss_part_nsec = static_cast<uint64_t>(msg->header.stamp.nanosec);
   uint64_t ts_gnss_nsec = ts_gnss_part_sec + ts_gnss_part_nsec;
@@ -8848,15 +9063,15 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     "GNSS Ts: " << ts_gnss_part_sec / 1000000000 << " sec + " << ts_gnss_part_nsec << " nsec = " << ts_gnss_nsec <<
       " nsec fused");
 
-  if (ts_gnss_nsec <= last_ts_gnss_nsec) {
+  if (ts_gnss_nsec <= mLastTs_gnss_nsec) {
     DEBUG_GNSS(
       "callback_gnssFix: data not valid (timestamp did not increment)");
     return;
   }
 
   DEBUG_STREAM_GNSS(
-    "GNSS dT: " << ts_gnss_nsec - last_ts_gnss_nsec << " nsec");
-  last_ts_gnss_nsec = ts_gnss_nsec;
+    "GNSS dT: " << ts_gnss_nsec - mLastTs_gnss_nsec << " nsec");
+  mLastTs_gnss_nsec = ts_gnss_nsec;
   // <---- Check timestamp
 
   mGnssTimestamp = rclcpp::Time(ts_gnss_nsec, RCL_ROS_TIME);
@@ -9025,7 +9240,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     // ----> Publish a blue sphere in the clicked point
     markerMsgPtr pt_marker = std::make_unique<visualization_msgs::msg::Marker>();
     // Set the frame ID and timestamp.  See the TF tutorials for information on these.
-    static int hit_pt_id = 0;
+    static int hit_pt_id = 0; // This ID must be unique in the same process. Thus it is good to keep it as a static variable
     pt_marker->header.stamp = ts;
     // Set the marker action.  Options are ADD and DELETE
     pt_marker->action = visualization_msgs::msg::Marker::ADD;
@@ -9069,7 +9284,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     // ----> Publish the plane as green mesh
     markerMsgPtr plane_marker = std::make_unique<visualization_msgs::msg::Marker>();
     // Set the frame ID and timestamp.  See the TF tutorials for information on these.
-    static int plane_mesh_id = 0;
+    static int plane_mesh_id = 0; // This ID must be unique in the same process. Thus it is good to keep it as a static variable
     plane_marker->header.stamp = ts;
     // Set the marker action.  Options are ADD and DELETE
     plane_marker->action = visualization_msgs::msg::Marker::ADD;
