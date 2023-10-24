@@ -16,7 +16,7 @@
             zed_id: 0 # IMPORTANT: to be used in simulation to distinguish individual cameras im multi-camera configurations - usually overwritten by launch file
             serial_number: 0 # usually overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
-            pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
+            pub_downscale_factor: 1.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             pub_frame_rate: 15.0 # frequency of publishing of visual images and depth images
             gpu_id: -1
             region_of_interest: '[]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
@@ -183,44 +183,44 @@
 
             
         topic_filter:
-            publish_Rgb :            true
-            publish_RgbGray :        true
-            publish_RawRgb :         true
-            publish_RawRgbGray :     true
+            publish_Rgb :            false
+            publish_RgbGray :        false
+            publish_RawRgb :         false
+            publish_RawRgbGray :     false
             publish_Left :           true
-            publish_LeftGray :       true
-            publish_RawLeft :        true
-            publish_RawLeftGray :    true
+            publish_LeftGray :       false
+            publish_RawLeft :        false
+            publish_RawLeftGray :    false
             publish_Right :          true
-            publish_RightGray :      true
-            publish_RawRight :       true
-            publish_RawRightGray :   true
+            publish_RightGray :      false
+            publish_RawRight :       false
+            publish_RawRightGray :   false
             publish_Depth :          true
-            publish_DepthInfo :      true
+            publish_DepthInfo :      false
             publish_Stereo :         true
-            publish_RawStereo :      true
-            publish_ConfMap :        true
-            publish_Disparity :      true
-            publish_Cloud :          true
-            publish_Pose :           true
-            publish_PoseStatus :     true
-            publish_PoseCov :        true
-            publish_Odom :           true
-            publish_OdomStatus :     true
-            publish_PosePath :       true
-            publish_OdomPath :       true
-            publish_GnssPose :       true
-            publish_GnssPoseStatus : true
-            publish_GeoPose :        true
-            publish_GeoPoseStatus :  true
-            publish_FusedCloud :     true
-            publish_Marker :         true
-            publish_Plane :          true
-            publish_Imu :            true
-            publish_ImuRaw :         true
-            publish_ImuTemp :        true
-            publish_ImuMag :         true
-            publish_Pressure :       true
-            publish_TempL :          true
-            publish_TempR :          true
-            publish_CamImuTransf :   true
+            publish_RawStereo :      false
+            publish_ConfMap :        false
+            publish_Disparity :      false
+            publish_Cloud :          false
+            publish_Pose :           false
+            publish_PoseStatus :     false
+            publish_PoseCov :        false
+            publish_Odom :           false
+            publish_OdomStatus :     false
+            publish_PosePath :       false
+            publish_OdomPath :       false
+            publish_GnssPose :       false
+            publish_GnssPoseStatus : false
+            publish_GeoPose :        false
+            publish_GeoPoseStatus :  false
+            publish_FusedCloud :     false
+            publish_Marker :         false
+            publish_Plane :          false
+            publish_Imu :            false
+            publish_ImuRaw :         false
+            publish_ImuTemp :        false
+            publish_ImuMag :         false
+            publish_Pressure :       false
+            publish_TempL :          false
+            publish_TempR :          false
+            publish_CamImuTransf :   false
