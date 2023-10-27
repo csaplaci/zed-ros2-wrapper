@@ -3220,78 +3220,85 @@ void ZedCamera::initPublishers()
     mPubRgb =
       image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+    if (!topic_publish_RgbGray) RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
   }
   if (topic_publish_RgbGray)
   {
     mPubRgbGray =
       image_transport::create_camera_publisher(this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getInfoTopic());
   }
   if (topic_publish_RawRgb)
   {
     mPubRawRgb =
       image_transport::create_camera_publisher(this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getTopic());
+    if (!topic_publish_RawRgbGray) RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
   }
   if (topic_publish_RawRgbGray)
   {
     mPubRawRgbGray = image_transport::create_camera_publisher(
       this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
   }
   if (topic_publish_Left)
   {
     mPubLeft =
       image_transport::create_camera_publisher(this, left_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
+    if (!topic_publish_LeftGray) RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
   }
   if (topic_publish_LeftGray)
   {
     mPubLeftGray = image_transport::create_camera_publisher(
       this, left_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
   }
   if (topic_publish_RawLeft)
   {
     mPubRawLeft =
       image_transport::create_camera_publisher(this, left_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
+    if (!topic_publish_RawLeftGray) RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
   }
   if (topic_publish_RawLeftGray)
   {
     mPubRawLeftGray = image_transport::create_camera_publisher(
       this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getInfoTopic());
   }
   if (topic_publish_Right)
   {
     mPubRight =
       image_transport::create_camera_publisher(this, right_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getTopic());
+    if (!topic_publish_RightGray) RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
+    
   }
   if (topic_publish_RightGray)
   {
     mPubRightGray = image_transport::create_camera_publisher(
       this, right_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getInfoTopic());
   }
   if (topic_publish_RawRight)
   {
     mPubRawRight = image_transport::create_camera_publisher(
       this, right_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
+    if (!topic_publish_RawRightGray) RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
   }
   if (topic_publish_RawRightGray)
   {
     mPubRawRightGray = image_transport::create_camera_publisher(
       this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
   }
 
   if (!mDepthDisabled) {
@@ -3511,6 +3518,57 @@ void ZedCamera::initPublishers()
     // <---- Camera/imu transform message
   }
   // <---- Sensors
+
+  // Topic-filter info ---->
+  RCLCPP_INFO(get_logger(), "***TOPICS DISABLED BY TOPIC-FILTER***");
+  if   (!topic_publish_Rgb            )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Rgb");
+  if   (!topic_publish_RgbGray        ) { RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Rgb Gray");
+    if (!topic_publish_Rgb            )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Rgb Info");       }
+  if   (!topic_publish_RawRgb         )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Rgb");
+  if   (!topic_publish_RawRgbGray     ) { RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Rgb Gray");
+    if (!topic_publish_RawRgb         )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Rgb Info");   }
+  if   (!topic_publish_Left           )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Left");
+  if   (!topic_publish_LeftGray       ) { RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Left Gray");
+    if (!topic_publish_Left           )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Left Info");      }
+  if   (!topic_publish_RawLeft        )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Left");
+  if   (!topic_publish_RawLeftGray    ) { RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Left Gray");
+    if (!topic_publish_RawLeft        )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Left Info");  }
+  if   (!topic_publish_Right          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Right");
+  if   (!topic_publish_RightGray      ) { RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Right Gray");
+    if (!topic_publish_Right          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Right Info");     }
+  if   (!topic_publish_RawRight       )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Right");
+  if   (!topic_publish_RawRightGray   ) { RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Right Gray");
+    if (!topic_publish_RawRight       )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Right Info"); }
+  if   (!topic_publish_Depth          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Depth");
+  if   (!topic_publish_DepthInfo      )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Depth Info");
+  if   (!topic_publish_Stereo         )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Stereo");
+  if   (!topic_publish_RawStereo      )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Raw Stereo");
+  if   (!topic_publish_ConfMap        )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Conf Map");
+  if   (!topic_publish_Disparity      )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Disparity");
+  if   (!topic_publish_Cloud          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Cloud");
+  if   (!topic_publish_Pose           )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Pose");
+  if   (!topic_publish_PoseStatus     )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Pose Status");
+  if   (!topic_publish_PoseCov        )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Pose Cov");
+  if   (!topic_publish_Odom           )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Odom");
+  if   (!topic_publish_OdomStatus     )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Odom Status");
+  if   (!topic_publish_PosePath       )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Pose Path");
+  if   (!topic_publish_OdomPath       )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Odom Path");
+  if   (!topic_publish_GnssPose       )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Gnss Pose");
+  if   (!topic_publish_GnssPoseStatus )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Gnss Pose Status");
+  if   (!topic_publish_GeoPose        )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Geo Pose");
+  if   (!topic_publish_GeoPoseStatus  )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Geo Pose Status");
+  if   (!topic_publish_FusedCloud     )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Fused Cloud");
+  if   (!topic_publish_Marker         )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Marker");
+  if   (!topic_publish_Plane          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Plane");
+  if   (!topic_publish_Imu            )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Imu");
+  if   (!topic_publish_ImuRaw         )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Imu Raw");
+  if   (!topic_publish_ImuTemp        )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Imu Temp");
+  if   (!topic_publish_ImuMag         )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Imu Mag");
+  if   (!topic_publish_Pressure       )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Pressure");
+  if   (!topic_publish_TempL          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Temp L");
+  if   (!topic_publish_TempR          )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Temp R");
+  if   (!topic_publish_CamImuTransf   )   RCLCPP_INFO_STREAM(get_logger(), "Disabled by filter: " << "Cam Imu Transf");
+  // <---- Topic-filter info
 }
 
 void ZedCamera::initSubscribers()
