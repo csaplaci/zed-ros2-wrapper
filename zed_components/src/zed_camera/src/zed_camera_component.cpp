@@ -3560,6 +3560,62 @@ void ZedCamera::initPublishers()
     // <---- Camera/imu transform message
   }
   // <---- Sensors
+
+  // Topic-filter info ---->
+  RCLCPP_INFO(get_logger(), "*** TOPICS DISABLED BY TOPIC-FILTER ***");
+  {
+    const std::string topic_filter_info_prefix = " * ";
+    bool topic_filter_any = true;
+    if   (!topic_publish_Rgb            ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Rgb");              topic_filter_any = false; }
+    if   (!topic_publish_RgbGray        ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Rgb Gray");         topic_filter_any = false; 
+      if (!topic_publish_Rgb            )   RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Rgb Info");                                   }
+    if   (!topic_publish_RawRgb         ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Rgb");          topic_filter_any = false; }
+    if   (!topic_publish_RawRgbGray     ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Rgb Gray");     topic_filter_any = false; 
+      if (!topic_publish_RawRgb         )   RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Rgb Info");                               }
+    if   (!topic_publish_Left           ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Left");             topic_filter_any = false; }
+    if   (!topic_publish_LeftGray       ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Left Gray");        topic_filter_any = false; 
+      if (!topic_publish_Left           )   RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Left Info");                                  }
+    if   (!topic_publish_RawLeft        ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Left");         topic_filter_any = false; }
+    if   (!topic_publish_RawLeftGray    ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Left Gray");    topic_filter_any = false; 
+      if (!topic_publish_RawLeft        )   RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Left Info");                              }
+    if   (!topic_publish_Right          ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Right");            topic_filter_any = false; }
+    if   (!topic_publish_RightGray      ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Right Gray");       topic_filter_any = false; 
+      if (!topic_publish_Right          )   RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Right Info");                                 }
+    if   (!topic_publish_RawRight       ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Right");        topic_filter_any = false; }
+    if   (!topic_publish_RawRightGray   ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Right Gray");   topic_filter_any = false; 
+      if (!topic_publish_RawRight       )   RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Right Info");                             }
+    if   (!topic_publish_Depth          ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Depth");            topic_filter_any = false; }
+    if   (!topic_publish_DepthInfo      ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Depth Info");       topic_filter_any = false; }
+    if   (!topic_publish_Stereo         ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Stereo");           topic_filter_any = false; }
+    if   (!topic_publish_RawStereo      ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Raw Stereo");       topic_filter_any = false; }
+    if   (!topic_publish_ConfMap        ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Conf Map");         topic_filter_any = false; }
+    if   (!topic_publish_Disparity      ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Disparity");        topic_filter_any = false; }
+    if   (!topic_publish_Cloud          ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Cloud");            topic_filter_any = false; }
+    if   (!topic_publish_Pose           ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Pose");             topic_filter_any = false; }
+    if   (!topic_publish_PoseStatus     ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Pose Status");      topic_filter_any = false; }
+    if   (!topic_publish_PoseCov        ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Pose Cov");         topic_filter_any = false; }
+    if   (!topic_publish_Odom           ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Odom");             topic_filter_any = false; }
+    if   (!topic_publish_OdomStatus     ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Odom Status");      topic_filter_any = false; }
+    if   (!topic_publish_PosePath       ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Pose Path");        topic_filter_any = false; }
+    if   (!topic_publish_OdomPath       ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Odom Path");        topic_filter_any = false; }
+    if   (!topic_publish_GnssPose       ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Gnss Pose");        topic_filter_any = false; }
+    if   (!topic_publish_GnssPoseStatus ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Gnss Pose Status"); topic_filter_any = false; }
+    if   (!topic_publish_GeoPose        ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Geo Pose");         topic_filter_any = false; }
+    if   (!topic_publish_GeoPoseStatus  ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Geo Pose Status");  topic_filter_any = false; }
+    if   (!topic_publish_FusedCloud     ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Fused Cloud");      topic_filter_any = false; }
+    if   (!topic_publish_Marker         ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Marker");           topic_filter_any = false; }
+    if   (!topic_publish_Plane          ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Plane");            topic_filter_any = false; }
+    if   (!topic_publish_Imu            ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Imu");              topic_filter_any = false; }
+    if   (!topic_publish_ImuRaw         ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Imu Raw");          topic_filter_any = false; }
+    if   (!topic_publish_ImuTemp        ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Imu Temp");         topic_filter_any = false; }
+    if   (!topic_publish_ImuMag         ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Imu Mag");          topic_filter_any = false; }
+    if   (!topic_publish_Pressure       ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Pressure");         topic_filter_any = false; }
+    if   (!topic_publish_TempL          ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Temp L");           topic_filter_any = false; }
+    if   (!topic_publish_TempR          ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Temp R");           topic_filter_any = false; }
+    if   (!topic_publish_CamImuTransf   ) { RCLCPP_INFO_STREAM(get_logger(), topic_filter_info_prefix << "Cam Imu Transf");   topic_filter_any = false; }
+    if (topic_filter_any) RCLCPP_INFO(get_logger(), " --- (none) --- ");
+  }
+  // <---- Topic-filter info
 }
 
 void ZedCamera::initSubscribers()
