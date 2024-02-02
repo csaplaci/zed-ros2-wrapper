@@ -3260,10 +3260,10 @@ void ZedCamera::initPublishers()
     mPubRgb =
       image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
   }
   if (topic_publish_RgbGray)
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
   mPubRgbGray =
       image_transport::create_camera_publisher(this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
@@ -3274,10 +3274,10 @@ void ZedCamera::initPublishers()
     mPubRawRgb =
       image_transport::create_camera_publisher(this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
   }
   if (topic_publish_RawRgbGray)
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
   mPubRawRgbGray = image_transport::create_camera_publisher(
       this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
@@ -3288,10 +3288,10 @@ void ZedCamera::initPublishers()
     mPubLeft =
       image_transport::create_camera_publisher(this, left_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
   }
   if (topic_publish_LeftGray)
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
   mPubLeftGray = image_transport::create_camera_publisher(
       this, left_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
@@ -3302,10 +3302,10 @@ void ZedCamera::initPublishers()
     mPubRawLeft =
       image_transport::create_camera_publisher(this, left_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
   }
   if (topic_publish_RawLeftGray)
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
   mPubRawLeftGray = image_transport::create_camera_publisher(
       this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
@@ -3316,10 +3316,10 @@ void ZedCamera::initPublishers()
     mPubRight =
       image_transport::create_camera_publisher(this, right_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
   }
   if (topic_publish_RightGray)
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
   mPubRightGray = image_transport::create_camera_publisher(
       this, right_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
@@ -3330,10 +3330,10 @@ void ZedCamera::initPublishers()
     mPubRawRight = image_transport::create_camera_publisher(
       this, right_raw_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
   }
   if (topic_publish_RawRightGray)
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
   mPubRawRightGray = image_transport::create_camera_publisher(
       this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
